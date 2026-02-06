@@ -1,5 +1,7 @@
 # Noticias IA -- Pipeline v0
 
+> 🔒 **Estado: v0-frozen** — Arquitectura validada con datos dummy. No conecta fuentes reales.
+
 Pipeline determinista construido con LangGraph para seleccionar y resumir items recientes sobre IA.
 
 El objetivo de v0 **no es informar**. Es validar que la arquitectura del pipeline es estable, reproducible y que el contrato de entrada/salida se cumple de extremo a extremo con datos simulados.
@@ -25,7 +27,7 @@ El objetivo de v0 **no es informar**. Es validar que la arquitectura del pipelin
 
 ---
 
-## Pipeline
+## 📦 Pipeline
 
 El grafo ejecuta los siguientes nodos en orden estrictamente secuencial:
 
@@ -74,7 +76,7 @@ Valida el schema de cada resumen. Si la respuesta del modelo no cumple el contra
 
 ---
 
-## Ranking A
+## 🧱 Ranking A
 
 El ranking es puramente determinista. No hay semantica, no hay ML, no hay scoring basado en contenido.
 
@@ -93,7 +95,7 @@ Criterios de ordenacion (en orden de prioridad):
 
 ---
 
-## Rol del LLM
+## 🧠 Rol del LLM
 
 El LLM interviene **unicamente** en el nodo `summarize`.
 
@@ -108,7 +110,7 @@ El LLM interviene **unicamente** en el nodo `summarize`.
 
 ---
 
-## Tests de estabilidad
+## 🧪 Tests de estabilidad
 
 Los tests (`tests/test_pipeline_stability.py`) validan que el pipeline es determinista en todo lo que no depende del LLM.
 
@@ -127,7 +129,7 @@ Estos tests funcionan como puerta de paso para avanzar de version. Si alguno fal
 
 ---
 
-## Fuera de alcance en v0
+## 🚧 Fuera de alcance en v0
 
 Las siguientes funcionalidades no estan implementadas ni simuladas:
 
@@ -142,7 +144,7 @@ Las siguientes funcionalidades no estan implementadas ni simuladas:
 
 ---
 
-## Riesgos asumidos en v0
+## ⚠️ Riesgos asumidos en v0
 
 - **Datos dummy no representan la realidad.** El comportamiento del pipeline con datos reales puede diferir. Formatos, volumenes y casos borde no estan cubiertos.
 - **El LLM no es determinista.** Aunque se usa temperatura baja (0.1), la redaccion puede variar entre ejecuciones. Los tests de estabilidad aceptan esta variacion solo en los campos generados por el modelo.
