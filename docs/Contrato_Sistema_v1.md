@@ -1,4 +1,4 @@
-# Contrato de Sistema (Documento de Gobernanza Humana)
+# Contrato de Sistema — v1
 
 ---
 
@@ -14,23 +14,26 @@ El sistema prioriza y selecciona ítems mediante reglas mecánicas; el uso de LL
 
 **v1 introduce:**
 
-- Conexión a fuentes reales.
-- Normalización efectiva de ítems (schema, deduplicación, fechas).
-- Activación real de `published_at` como criterio principal de ranking.
+- Conexión a fuentes reales (arXiv `cs.AI`).
+- Normalización efectiva de schema.
+- Ranking léxico basado en coincidencia entre query y contenido del ítem.
+- Uso de `time_window` para parametrizar la consulta a fuentes.
 
 **v1 mantiene sin cambios:**
 
-- Contrato I/O.
-- Ranking determinista (criterios y orden).
-- Orden del pipeline.
+- Orden del pipeline (secuencial, total).
 - Rol no decisional del LLM.
 - Condiciones de estabilidad como gate de avance.
 
+**v1 cambia respecto a v0:**
+
+- Ranking: de ordenación por fecha/tipo a scoring léxico (`|Q ∩ T|`).
+- Output: schema simplificado (sin `kind`, `generated_at`; `por_que_importa` → `relacion_con_query`).
+- Normalize: nodo único de mapeo de schema (sin dedupe, sin fechas).
+
 ### 1.3 Intención de diseño
 
-v1 tiene el objetivo de corregir el error de diseño del nodo normalizado, el cual asumió demasiadas responsabilidades, y probar la arquitectura con datos reales.
-
-En esta versión se realizará la recolección de datos de una única fuente (arXiv), para de esta forma comprobar la aparición de bugs básicos.
+v1 tiene el objetivo de probar la arquitectura con datos reales de una única fuente (arXiv `cs.AI`), comprobando la aparición de bugs básicos y validando que el pipeline contractual funciona de extremo a extremo.
 
 ### 1.4 No-objetivos
 
@@ -42,6 +45,7 @@ No es objetivo de v1:
 - Introducir scoring semántico, embeddings o ML.
 - Ajustar el sistema mediante feedback.
 - Corregir, reinterpretar o "mejorar" outputs del LLM.
+- Deduplicar ítems.
 
 ---
 
@@ -50,11 +54,8 @@ No es objetivo de v1:
 ### 2.1 Qué hace
 
 - Consulta fuentes reales, cerradas y versionadas.
-- Normaliza ítems de forma mecánica y determinista:
-  - schema
-  - deduplicación
-  - fechas (`published_at` o `NULL`)
-- Prioriza ítems con ranking determinista (sin LLM).
+- Normaliza ítems de forma mecánica y determinista (mapeo de schema).
+- Prioriza ítems con ranking léxico determinista (sin LLM).
 - Selecciona top-K resultados.
 - Genera resúmenes descriptivos mediante LLM como transformador de texto.
 - Valida estrictamente el schema de salida; si falla → **ABORT**.
@@ -67,6 +68,7 @@ No es objetivo de v1:
 - Permitir que el LLM filtre, reordene o descarte ítems.
 - Corregir, reintentar o "arreglar" salidas inválidas del LLM.
 - Degradar silenciosamente: ante violación → **ABORT**.
+- Deduplicar ítems.
 
 ---
 
@@ -149,7 +151,7 @@ implica **nueva versión** del sistema.
 
 ---
 
-## 4. Contrato I/O (v1 — integrado)
+## 4. Contrato I/O (v1)
 
 ### 4.1 Input (usuario)
 
@@ -177,14 +179,12 @@ implica **nueva versión** del sistema.
 {
   "topic": "string",
   "time_window": "string",
-  "generated_at": "datetime",
   "results": [
     {
-      "kind": "paper | news | release",
       "title": "string",
       "idea_clave": "string (≤ 80 palabras)",
-      "por_que_importa": "string (≤ 30 palabras)",
-      "link": "string (único)"
+      "relacion_con_query": "string (≤ 30 palabras)",
+      "link": "string"
     }
   ]
 }
@@ -192,27 +192,38 @@ implica **nueva versión** del sistema.
 
 **Reglas:**
 
+- `topic`: copia literal de `input_validated.query`, sin normalización ni transformación.
+- `time_window`: copia literal de `input_validated.time_window`.
 - Máx. `top_k` resultados.
-- Orden contractual (derivado del ranking).
+- Orden contractual (derivado del ranking léxico).
 - Resúmenes descriptivos; sin opinión ni comparativa.
-- Enlace canónico único.
+- `link`: identificador único por unidad. Sin garantía de deduplicación, pero orden determinista incluso con colisión.
 
 ### 4.4 Compatibilidad
 
-- Compatible con v0 en estructura I/O.
-- Ajustes de longitud no cambian semántica.
-- Cambios estructurales → versión mayor.
+- v1 cambia el schema de output respecto a v0 (eliminación de `kind`, `generated_at`; renombrado de campo de resumen).
+- Cambios estructurales adicionales → versión mayor.
 
-### 4.5 Errores de I/O (ABORT)
+### 4.5 Errores (ABORT)
 
-| Código                      | Descripción                         |
-|-----------------------------|-------------------------------------|
-| `INVALID_QUERY`             | Query no cumple formato requerido   |
-| `INVALID_TIME_WINDOW`       | Ventana temporal fuera de enum      |
-| `INVALID_TOP_K`             | Valor fuera de rango `[1..10]`      |
-| `EMPTY_RESULTS`             | Sin resultados tras pipeline        |
-| `INVALID_KIND`              | Tipo de ítem no reconocido          |
-| `SUMMARY_SCHEMA_VIOLATION`  | Schema de resumen no cumplido       |
+| Código                                 | Origen           | Descripción                                   |
+|----------------------------------------|------------------|-----------------------------------------------|
+| `EMPTY_INPUT_PAYLOAD`                  | `collect_input`  | Entrada nula o inexistente                    |
+| `INVALID_QUERY`                        | `validate_input` | Query no cumple formato requerido             |
+| `INVALID_TIME_WINDOW`                  | `validate_input` | Ventana temporal fuera de enum                |
+| `INVALID_TOP_K`                        | `validate_input` | Valor fuera de rango `[1..10]`                |
+| `FETCH_SOURCE_ERROR`                   | `fetch`          | Fuente no responde o devuelve error           |
+| `FETCH_NOT_ITERABLE`                   | `fetch`          | Respuesta no es colección iterable            |
+| `NORMALIZE_MISSING_TITLE`              | `normalize`      | Unidad sin title válido                       |
+| `NORMALIZE_MISSING_LINK`               | `normalize`      | Unidad sin link válido                        |
+| `NORMALIZE_MISSING_CONTENT`            | `normalize`      | Unidad sin content válido                     |
+| `RANK_QUERY_EMPTY_AFTER_NORMALIZATION` | `rank`           | Query vacía tras normalización textual        |
+| `SELECT_MISSING_RANKED_ITEMS`          | `select`         | ranked_items no existe o no es lista          |
+| `SELECT_TOPK_INVALID`                  | `select`         | top_k no es entero o ≤ 0                      |
+| `SUMMARY_LLM_RUNTIME_ERROR`            | `summarize`      | Error de invocación del LLM                   |
+| `SUMMARY_SCHEMA_VIOLATION`             | `summarize`      | Schema de resumen no cumplido                 |
+
+**Regla:** Ante cualquier abort, no se devuelven resultados parciales.
 
 ---
 
@@ -240,9 +251,9 @@ El output del LLM es válido solo si cumple el schema contractual.
 
 Validaciones:
 
-- Campos presentes.
+- Campos presentes (`idea_clave`, `relacion_con_query`).
 - Tipos correctos.
-- Límites de longitud.
+- Límites de longitud (`idea_clave` ≤ 80 palabras, `relacion_con_query` ≤ 30 palabras).
 - No hay post-procesado semántico.
 
 ### 5.4 Manejo de errores
@@ -313,44 +324,25 @@ No existen excepciones temporales.
 collect_input
   → validate_input
     → fetch
-      → normalize_schema
-        → normalize_dedupe
-          → normalize_dates
-            → rank
-              → select
-                → summarize
+      → normalize
+        → rank
+          → select
+            → summarize
 ```
 
 Este orden es **total y obligatorio**.
 
 ### 7.2 Responsabilidad por nodo (mínima)
 
-| Nodo               | Responsabilidad                                                        |
-|--------------------|------------------------------------------------------------------------|
-| `collect_input`    | Ingesta del input bruto del usuario.                                   |
-| `validate_input`   | Validación del contrato de input y aplicación de defaults.             |
-| `fetch`            | Obtención de ítems desde las fuentes definidas como artefactos exógenos.|
-| `normalize_schema` | Garantiza presencia y tipo de campos contractuales.                    |
-| `normalize_dedupe` | Eliminación determinista de duplicados.                                |
-| `normalize_dates`  | Determinar un único campo `published_at` por ítem (ver reglas abajo). |
-| `rank`             | Ordenación determinista según criterios contractuales.                 |
-| `select`           | Selección de los `top_k` ítems según ranking.                          |
-| `summarize`        | Generación de resúmenes descriptivos mediante LLM.                     |
-
-**Reglas de `normalize_dates`:**
-
-- Si existe una única fecha parseable → usarla.
-- Si existen múltiples fechas → aplicar prioridad fija:
-  1. `published`
-  2. `updated`
-  3. `submitted`
-- Si ninguna fecha es parseable → `published_at = NULL`.
-
-**No se permite:**
-
-- Inferencia semántica.
-- Heurísticas implícitas.
-- Uso de contexto externo.
+| Nodo               | Responsabilidad                                                                      |
+|--------------------|--------------------------------------------------------------------------------------|
+| `collect_input`    | Ingesta del input bruto del usuario.                                                 |
+| `validate_input`   | Validación del contrato de input y aplicación de defaults.                           |
+| `fetch`            | Obtención de ítems desde la fuente, parametrizada por `query` y `time_window`.       |
+| `normalize`        | Mapeo de schema: garantiza presencia y tipo de campos contractuales.                 |
+| `rank`             | Ordenación léxica determinista según coincidencia entre query y contenido del ítem.  |
+| `select`           | Selección de los `top_k` ítems según ranking.                                        |
+| `summarize`        | Generación de resúmenes descriptivos mediante LLM.                                   |
 
 ### 7.3 Reglas contractuales
 
@@ -364,7 +356,13 @@ Un nodo solo consume outputs validados del nodo anterior.
 
 Alterar el número de nodos, su orden o su responsabilidad implica **nueva versión** del sistema.
 
-### 7.4 Invariante
+### 7.4 Runtime v1
+
+El runtime oficial de v1 es `run_real_pipeline.py`: ejecuta los nodos secuencialmente, captura `ValueError` como mecanismo de abort y escribe `abort_reason` en el State.
+
+`graph.py` / `run.py` (LangGraph) son artefactos legacy mantenidos para compatibilidad. No implementan el mecanismo de abort contractual y no constituyen el runtime de referencia para v1.
+
+### 7.5 Invariante
 
 El pipeline define el comportamiento completo del sistema. Cualquier ejecución que no siga este orden es **inválida**.
 
@@ -509,15 +507,10 @@ Este apartado define el estado formal del contrato del sistema.
 
 ### 10.3 Efectos del estado FROZEN
 
-- El contrato v1 constituye una referencia estable del sistema.
-- No se permiten modificaciones:
-  - de invariantes
-  - del pipeline
-  - del rol del LLM
-  - de los artefactos exógenos
-- sin incremento explícito de versión.
+- El contrato v1 está cerrado y congelado.
+- No se permiten modificaciones. Cualquier cambio requiere nueva versión (v2).
 
 ### 10.4 Regla de cambio de estado
 
-- Cualquier modificación del contenido de este contrato invalida el estado FROZEN.
-- Los cambios deberán introducirse exclusivamente mediante una nueva versión (v2).
+- El paso a FROZEN requiere que todos los gates (§9.3) estén satisfechos.
+- Cualquier modificación posterior al FROZEN invalida el estado y requiere nueva versión (v2).

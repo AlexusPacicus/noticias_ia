@@ -1,40 +1,29 @@
-from datetime import datetime
-
-_KIND_PRIORITY = {"release": 0, "paper": 1, "news": 2}
+import re
 
 
-def _sort_key(item: dict):
-    """
-    Ranking A contractual:
-    1) published_at desc (missing => last)
-    2) kind priority: release > paper > news
-    3) title asc
-    4) link asc
-    """
-    published = item.get("published_at")
-
-    # Avoid datetime.min.timestamp() (can raise on some platforms).
-    if isinstance(published, datetime):
-        # Use timestamp for numeric ordering; negate later for desc.
-        date_ts = published.timestamp()
-    else:
-        # Missing/invalid => last
-        date_ts = float("-inf")
-
-    return (
-        -date_ts,  # desc by time
-        _KIND_PRIORITY.get(item.get("kind"), 99),
-        item.get("title", "") or "",
-        item.get("link", "") or "",
-    )
+def _tokenize(text):
+    """Normalización textual contractual: lowercase, no [a-z0-9] → espacio, split, set."""
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9]", " ", text)
+    return set(t for t in text.split() if t)
 
 
 def rank(state: dict) -> dict:
-    sorted_items = sorted(state["normalized_items"], key=_sort_key)
+    normalized_items = state["normalized_items"]
+    query = state["input_validated"]["query"]
 
-    ranked = []
-    for i, item in enumerate(sorted_items, start=1):
-        ranked.append({**item, "score": i})
+    Q = _tokenize(query)
+    if not Q:
+        raise ValueError("RANK_QUERY_EMPTY_AFTER_NORMALIZATION")
 
-    state["ranked_items"] = ranked
+    if not normalized_items:
+        state["ranked_items"] = []
+        return state
+
+    def sort_key(item):
+        T = _tokenize(item["title"] + " " + item["content"])
+        score = len(Q & T)
+        return (-score, item["title"], item["link"])
+
+    state["ranked_items"] = sorted(normalized_items, key=sort_key)
     return state

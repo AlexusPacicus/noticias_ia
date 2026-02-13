@@ -13,8 +13,8 @@ Esta lista define las únicas claves que pueden existir en el State en cualquier
 ### 2.1 Lista cerrada
 
 - `input_raw`
-- `input`
-- `fetched_items`
+- `input_validated`
+- `external_units`
 - `normalized_items`
 - `ranked_items`
 - `selected_items`
@@ -55,20 +55,21 @@ Cada campo del State:
 
 ### Matriz de acceso
 
-| Campo              | Crea             | Lee                | Desde              | Hasta |
-|--------------------|------------------|--------------------|---------------------|-------|
-| `input_raw`        | `collect_input`  | `validate_input`   | `collect_input`     | fin   |
-| `input`            | `validate_input` | todos              | `validate_input`    | fin   |
-| `fetched_items`    | `fetch`          | `normalize_schema` | `fetch`             | fin   |
-| `normalized_items` | `normalize_*`    | `rank`             | `normalize_schema`  | fin   |
-| `ranked_items`     | `rank`           | `select`           | `rank`              | fin   |
-| `selected_items`   | `select`         | `summarize`        | `select`            | fin   |
-| `output`           | `summarize`      | —                  | `summarize`         | fin   |
-| `abort_reason`     | cualquier nodo   | —                  | primer abort        | fin   |
+| Campo              | Crea             | Lee                | Desde              |
+|--------------------|------------------|--------------------|---------------------|
+| `input_raw`        | `collect_input`  | `validate_input`   | `collect_input`     |
+| `input_validated`  | `validate_input` | todos              | `validate_input`    |
+| `external_units`   | `fetch`          | `normalize`        | `fetch`             |
+| `normalized_items` | `normalize`      | `rank`             | `normalize`         |
+| `ranked_items`     | `rank`           | `select`           | `rank`              |
+| `selected_items`   | `select`         | `summarize`        | `select`            |
+| `output`           | `summarize`      | —                  | `summarize`         |
+| `abort_reason`     | runtime          | —                  | primer abort        |
 
 - La columna **"Lee"** define una lista cerrada de nodos autorizados.
 - La lectura de un campo por un nodo no listado constituye **violación contractual**.
 - "Todos" se considera un alias explícito de todos los nodos posteriores del pipeline v1.
+- Los nodos señalizan abort lanzando excepción. El runtime escribe abort_reason.
 ---
 
 ## 5. Invariantes del State

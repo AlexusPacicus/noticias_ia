@@ -1,5 +1,4 @@
 def collect_input(state: dict) -> dict:
-    return {
-        **state,
-        "raw_input": state.copy()
-    }
+    if state is None:
+        raise ValueError("EMPTY_INPUT_PAYLOAD")
+    return {"input_raw": state.copy()}

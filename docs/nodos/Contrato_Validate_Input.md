@@ -110,6 +110,7 @@ Este nodo puede abortar únicamente por violaciones del contrato de entrada del 
 - El primer abort detectado detiene la ejecución.
 - No se devuelven resultados parciales.
 - No se escribe `input_validated`.
+- El nodo señaliza abort lanzando excepción. El runtime escribe `abort_reason`.
 
 **Mapeo contractual:**
 ↳ Abort general 4 — Imposibilidad de validación ex-post.
@@ -150,3 +151,10 @@ Nodo de frontera contractual de entrada. Define qué inputs existen dentro del s
   - conforme al contrato del sistema v1.
 
 Cualquier debilitamiento, fragmentación o reinterpretación de este nodo rompe la gobernanza del sistema y activa un abort general.
+
+---
+
+## 8. Estado del contrato
+
+- **Versión:** v1
+- **Estado:** **FROZEN**

@@ -4,13 +4,13 @@
 
 ## 1. Propósito
 
-Transferir al State la respuesta literal de la fuente autorizada, sin aplicar criterio, filtrado, normalización, interpretación ni enriquecimiento.
+Transferir al State la respuesta de la fuente autorizada, parametrizada por `query` y `time_window`, sin aplicar criterio, normalización, interpretación ni enriquecimiento.
 
 ---
 
 ## 2. Lecturas permitidas (State)
 
-- `input_validated` (obligatorio).
+- `input_validated` (obligatorio; acceso a `query` y `time_window`).
 
 **Lecturas prohibidas:**
 
@@ -24,7 +24,26 @@ Transferir al State la respuesta literal de la fuente autorizada, sin aplicar cr
 
 **Campo creado:** `external_units`
 
-`external_units` colección iterable de unidades externas trasladadas literalmente.
+Colección iterable de unidades externas obtenidas de la fuente.
+
+**Parametrización:**
+
+- La consulta a la fuente se parametriza usando `query` y `time_window` de `input_validated`.
+- `query` se utiliza como término de búsqueda contra la fuente.
+- `time_window` se utiliza para acotar temporalmente la consulta.
+- Si la fuente no permite filtro temporal exacto, se aplica un filtro posterior determinista sobre la respuesta.
+
+**Interpretación de `time_window` (v1):**
+
+- `last_24h`: últimas 24 horas desde el momento de ejecución.
+- `last_3_days`: últimos 3 días naturales.
+- `last_7_days`: últimos 7 días naturales.
+- La fecha de referencia de cada unidad es la fecha de publicación declarada por la fuente (arXiv: `published`).
+- Zona horaria: UTC.
+- Bordes: inclusivos (una unidad publicada exactamente en el límite se incluye).
+- Solo se incluyen unidades cuya fecha de referencia cae dentro de la ventana.
+- Si la fuente no expone fecha de publicación para una unidad, dicha unidad se excluye.
+- Este filtro temporal es mecánico y determinista; no constituye filtrado semántico ni introduce criterio.
 
 **Reglas contractuales:**
 
@@ -33,12 +52,12 @@ Transferir al State la respuesta literal de la fuente autorizada, sin aplicar cr
 - No existe ninguna garantía contractual sobre el orden de las unidades externas.
 - No se aplica:
   - ranking,
-  - filtrado,
   - deduplicación,
   - normalización,
-  - interpretación semántica.
+  - interpretación semántica,
+  - filtrado por contenido, relevancia o calidad.
 
-“Cualquier decisión sobre validez interna, orden o significado de las unidades externas pertenece exclusivamente a nodos posteriores del pipeline.
+Cualquier decisión sobre validez interna, orden o significado de las unidades externas pertenece exclusivamente a nodos posteriores del pipeline.
 
 ---
 
@@ -46,27 +65,14 @@ Transferir al State la respuesta literal de la fuente autorizada, sin aplicar cr
 
 - Si el nodo completa su ejecución, el campo `external_units` existe obligatoriamente en el State.
 - `fetch` no introduce criterio ni toma decisiones sobre las unidades externas obtenidas.
-- `fetch` no modifica el contenido recibido de la fuente autorizada.
+- `fetch` no modifica el contenido recibido de la fuente autorizada (salvo el filtro temporal declarado).
 - `fetch` no persiste estado entre ejecuciones.
 
 Estos invariantes deben cumplirse en toda ejecución válida del nodo.
 
 ---
 
-## 5. Relación con artefactos exógenos
-
-- `fetch` opera exclusivamente sobre las fuentes definidas como artefactos exógenos del sistema v1.
-- `fetch` no selecciona, prioriza ni rota fuentes.
-- `fetch` no implementa mecanismos de fallback ni alternativas ante fallo de una fuente.
-- `fetch` no puede modificar endpoints, categorías ni parámetros definidos fuera del runtime.
-
-Cualquier cambio en las fuentes, sus endpoints o su configuración constituye un cambio de sistema y requiere **nueva versión**.
-
----
-
-## 6. Aborts específicos
-
-`fetch` puede abortar la ejecución únicamente cuando no es posible trasladar datos externos al sistema gobernado de forma válida.
+## 5. Aborts específicos
 
 ### `FETCH_SOURCE_ERROR`
 
@@ -77,44 +83,55 @@ No es posible garantizar la transferencia literal de datos externos.
 
 No se puede obtener una colección iterable sin interpretación.
 
-### `FETCH_EMPTY_RESPONSE`
-
-La fuente responde correctamente pero no devuelve ninguna unidad externa. En v1 se declara contractualmente que avanzar sin estas no es válido.
-Esta es una decisión específica del sistema v1, no una propiedad general del nodo fetch.
-
 **Regla contractual:**
 Ante cualquier abort:
 
 - No se escribe `external_units`.
-- Se escribe `abort_reason`.
+- El nodo señaliza abort lanzando excepción. El runtime escribe `abort_reason`.
 - El pipeline se detiene.
 
 **Mapeo contractual:**
-Todos los aborts específicos de este nodo mapean a ↳ Abort general 4 — Imposibilidad de validación ex-post.
+↳ Abort general 4 — Imposibilidad de validación ex-post.
 
 ---
 
-## 7. Prohibiciones explícitas
+## 6. Prohibiciones explícitas
 
-- Prohibido leer cualquier campo del State distinto de `input_validated`.
-- Prohibido escribir cualquier campo distinto de `external_units`.
-- Prohibido filtrar, ordenar, deduplicar o transformar unidades externas.
-- Prohibido inferir validez, relevancia o significado.
-- Prohibido aplicar heurísticas, defaults o correcciones.
-- Prohibido seleccionar, rotar o hacer fallback de fuentes.
-- Prohibido introducir metadatos de ejecución o estado interno.
-- Prohibido persistir estado entre ejecuciones.
+Queda prohibido a este nodo:
+
+- Leer cualquier campo del State distinto de `input_validated`.
+- Escribir cualquier campo distinto de `external_units`.
+- Filtrar por contenido, relevancia, calidad o significado.
+- Ordenar, deduplicar o transformar unidades externas.
+- Inferir validez, relevancia o significado.
+- Aplicar heurísticas, defaults o correcciones.
+- Seleccionar, rotar o hacer fallback de fuentes.
+- Introducir metadatos de ejecución o estado interno.
+- Persistir estado entre ejecuciones.
 
 **Regla dura:**
 Cualquier violación activa **Abort 5 — Ambigüedad de responsabilidad**.
 
 ---
 
-## 8. Notas de gobernanza
+## 7. Notas de gobernanza
 
 `fetch` es un nodo de frontera externa.
 
 - Todo comportamiento no gobernado por contrato se contiene aquí y no se propaga al resto del pipeline.
 - Este nodo no garantiza determinismo inter-ejecución, pero sí garantiza aislamiento, trazabilidad y ausencia de criterio.
+- `fetch` opera exclusivamente sobre las fuentes definidas como artefactos exógenos del sistema v1.
+- No selecciona, prioriza ni rota fuentes.
+- No implementa mecanismos de fallback ni alternativas ante fallo de una fuente.
+- No puede modificar endpoints, categorías ni parámetros definidos fuera del runtime.
+
+Cualquier cambio en las fuentes, sus endpoints o su configuración constituye un cambio de sistema y requiere **nueva versión**.
 
 A partir de este punto, todos los datos se consideran dentro del sistema gobernado y solo pueden ser tratados conforme a los contratos posteriores.
+
+---
+
+## 8. Estado del contrato
+
+- **Versión:** v1
+- **Estado:** **FROZEN**

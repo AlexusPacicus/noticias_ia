@@ -59,6 +59,8 @@ Capturar y persistir tal cual el input del usuario como `input_raw`, sin aplicar
   - Campos faltantes
   - Valores incorrectos
   - (Eso corresponde a `validate_input`.)
+El nodo señaliza abort lanzando excepción. El runtime escribe `abort_reason`.
+
 - **Mapeo:** ↳ Abort 4 — Imposibilidad de validación ex-post (sin input no hay evaluación posible).
 
 Este abort se evalúa antes de cualquier validación contractual.
@@ -100,3 +102,10 @@ Nodo estrictamente mecánico y de frontera. No aporta criterio, semántica ni va
 Cualquier lógica añadida aquí desplaza responsabilidad desde `validate_input` y activa **Abort 5 — Ambigüedad de responsabilidad**.
 
 Este nodo define el límite inferior del State: todo lo anterior al pipeline queda fuera del sistema gobernado.
+
+---
+
+## 8. Estado del contrato
+
+- **Versión:** v1
+- **Estado:** **FROZEN**
