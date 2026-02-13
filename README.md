@@ -14,15 +14,21 @@ Sistema contractual de selección y resumen de papers de IA desde arXiv `cs.AI`.
 collect_input → validate_input → fetch → normalize → rank → select → summarize
 ```
 
-## Runtime oficial
+## Setup
+
+```bash
+pip install -r requirements.txt
+```
+
+Requiere [Ollama](https://ollama.com/) con el modelo `gemma3:4b` disponible para el nodo `summarize`.
+
+## Runtime
 
 ```bash
 python run_real_pipeline.py
 ```
 
 Ejecuta el pipeline completo con datos reales. Captura aborts vía `ValueError` y escribe `abort_reason` en el State.
-
-`graph.py` / `run.py` (LangGraph) son artefactos legacy. No implementan el mecanismo de abort contractual.
 
 ## Tests
 
