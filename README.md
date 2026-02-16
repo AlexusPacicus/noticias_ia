@@ -1,44 +1,57 @@
-# noticias - v1.1
+# noticias -- v1.1
 
-Sistema de seleccion y resumen de items recientes de IA con runtime oficial en LangGraph.
+Sistema gobernado por contrato para seleccion y resumen de items recientes sobre IA a partir de fuentes reales y cerradas. Runtime oficial sobre LangGraph.
 
-## Estado actual
+---
 
-- Version activa: `v1.1`
-- Runtime oficial: `graph/graph.py:graph`
-- Entry point local: `run_pipeline.py` (delegado a `graph.invoke`)
-- Legacy ejecutable v1: `tag v1.0.0` y `branch codex/legacy-v1`
+## Overview
 
-## Runtime oficial (v1.1)
+Dado un `query`, un `time_window` y un `top_k` opcional, el sistema obtiene items recientes de arXiv (`cs.AI`), los ordena por coincidencia lexica determinista y genera resumenes descriptivos mediante LLM.
 
-El pipeline se ejecuta unicamente via `graph.invoke(input)` sobre el grafo compilado:
+El pipeline es fijo, determinista en seleccion y orden, y falla de forma explicita ante cualquier violacion contractual. El LLM opera unicamente como transformador de texto en el nodo final; no participa en ranking, seleccion ni filtrado.
 
-- `graph/graph.py`
-- `langgraph.json` -> `./graph/graph.py:graph`
+---
 
-Semantica de abort contractual en v1.1:
+## Architecture
 
-- Cada nodo aborta retornando `{"abort_reason": "CODIGO"}`.
-- El router condicional del grafo redirige a `END` cuando detecta `abort_reason`.
-- No se devuelven resultados parciales.
+Pipeline de orden fijo e inmutable, ejecutado como `StateGraph` compilado de LangGraph:
 
-## Pipeline
+```
+collect_input -> validate_input -> fetch -> normalize -> rank -> select -> summarize
+```
 
-Orden fijo:
+| Nodo             | Responsabilidad                                                |
+|------------------|----------------------------------------------------------------|
+| `collect_input`  | Ingesta del input bruto del usuario.                           |
+| `validate_input` | Validacion del contrato de entrada y aplicacion de defaults.   |
+| `fetch`          | Obtencion de items desde arXiv, filtrados por ventana temporal.|
+| `normalize`      | Mapeo a schema interno cerrado (`title`, `link`, `content`).  |
+| `rank`           | Ordenacion lexica determinista por coincidencia con el query.  |
+| `select`         | Seleccion de los primeros `top_k` items del ranking.           |
+| `summarize`      | Generacion de resumenes descriptivos via LLM (1 por item).    |
 
-`collect_input -> validate_input -> fetch -> normalize -> rank -> select -> summarize`
+**Runtime oficial:** `graph.invoke(input)` sobre el grafo compilado en `graph/graph.py:graph`.
 
-## Contrato I/O publico
+Cada nodo retorna un dict parcial. LangGraph gestiona el merge de estado. Los nodos senalizan abort retornando `{"abort_reason": "CODIGO"}`; el router condicional redirige a `END`. No hay resultados parciales.
 
-Input (`InputState`):
+Detalle completo en los contratos de referencia (ver [Documentation](#documentation)).
 
-- `query: str`
-- `time_window: "last_24h" | "last_3_days" | "last_7_days"`
-- `top_k: int` (opcional, default `5`, rango `[1..10]`)
+---
 
-Output (`OutputState`):
+## Public I/O Contract
 
-- `output` o `abort_reason`
+**Input** (`InputState`, definido en `graph/state.py`):
+
+| Campo         | Tipo             | Restriccion                                   |
+|---------------|------------------|-----------------------------------------------|
+| `query`       | `str`            | Min. 2 palabras, sin operadores booleanos.    |
+| `time_window` | `str` (enum)     | `last_24h` \| `last_3_days` \| `last_7_days` |
+| `top_k`       | `int` (opcional) | Rango `[1..10]`, default `5`.                 |
+
+**Output** (`OutputState`, definido en `graph/state.py`):
+
+- Ejecucion exitosa: `{"output": {...}}`
+- Ejecucion abortada: `{"abort_reason": "CODIGO"}`
 
 Schema de `output`:
 
@@ -49,66 +62,74 @@ Schema de `output`:
   "results": [
     {
       "title": "string",
-      "idea_clave": "string (<= 80 palabras)",
-      "relacion_con_query": "string (<= 30 palabras)",
+      "idea_clave": "string (max 80 palabras)",
+      "relacion_con_query": "string (max 30 palabras)",
       "link": "string"
     }
   ]
 }
 ```
 
-## Ejecucion local
+`output` y `abort_reason` no coexisten. Codigos de abort documentados en `docs/v1.1/Contrato_Sistema_v1.1.md`.
 
-Instalar dependencias:
+---
+
+## Running Locally
+
+**Requisitos:** Python 3.11+, [Ollama](https://ollama.com/) con modelo `gemma3:4b` disponible.
 
 ```bash
 pip install -r requirements.txt
-```
-
-Ejecutar pipeline:
-
-```bash
 python run_pipeline.py
 ```
+
+`run_pipeline.py` es un entrypoint de conveniencia que delega en `graph.invoke(...)`.
+
+---
 
 ## Tests
 
 ```bash
-# Unitarios (sin red ni e2e)
+# Unitarios (sin red ni LLM)
 pytest -q -m "not integration and not e2e"
 
-# Integracion (arXiv)
+# Integracion (requiere arXiv)
 pytest -q -m integration
 
-# E2E (arXiv + Ollama)
+# End-to-end (requiere arXiv + Ollama)
 pytest -q -m e2e
 ```
 
-## Documentacion
+30 tests unitarios. Markers definidos en `pytest.ini`.
 
-Activa (`v1.1`):
+---
 
-- `docs/v1.1/Contrato_Sistema_v1.1.md`
-- `docs/v1.1/Contrato_Runtime_v1.1.md`
-- `docs/v1.1/Contrato_State_v1.1.md`
+## Versioning
 
-Legacy (`v1`, solo historico):
+| Version | Estado   | Runtime                  | Referencia                          |
+|---------|----------|--------------------------|-------------------------------------|
+| v1.1    | ACTIVE   | `graph.invoke()` (LangGraph) | Branch `v1.1`, docs activos    |
+| v1      | FROZEN   | Loop manual (legacy)     | Tag `v1.0.0`, branch `codex/legacy-v1` |
 
-- `docs/legacy/v1/Contrato_Sistema_v1.md`
-- `docs/legacy/v1/Contrato_State_v1.md`
-- `docs/legacy/v1/nodos/`
+v1 no se modifica. Cualquier cambio estructural sobre v1.1 implica nueva version.
 
-## Ejecutar legacy v1
-
-Si necesitas ejecutar el runtime manual historico (`run_real_pipeline.py`):
+Para ejecutar el runtime historico de v1:
 
 ```bash
-git switch codex/legacy-v1
-python run_real_pipeline.py
+git checkout v1.0.0
 ```
 
-Volver a v1.1:
+---
 
-```bash
-git switch v1.1
-```
+## Documentation
+
+**Activa (v1.1):**
+
+- [`docs/v1.1/Contrato_Sistema_v1.1.md`](docs/v1.1/Contrato_Sistema_v1.1.md)
+- [`docs/v1.1/Contrato_Runtime_v1.1.md`](docs/v1.1/Contrato_Runtime_v1.1.md)
+- [`docs/v1.1/Contrato_State_v1.1.md`](docs/v1.1/Contrato_State_v1.1.md)
+- [`CHANGELOG_v1.1.md`](CHANGELOG_v1.1.md) -- cambios detallados v1 a v1.1.
+
+**Legacy (v1, solo referencia historica):**
+
+- [`docs/legacy/v1/`](docs/legacy/v1/) -- contratos congelados de sistema, state y nodos.
