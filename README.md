@@ -1,152 +1,136 @@
 # noticias — v1.1
 
-Seleccion y resumen de items recientes sobre IA desde fuentes reales y cerradas.
-Pipeline gobernado por contrato. Runtime sobre LangGraph.
+Busca papers recientes de IA en arXiv, los rankea por relevancia contra tu query y genera resumenes cortos con un LLM local.
 
 ---
 
-## Que hace
+## Como funciona
 
-Recibe un `query`, un `time_window` y un `top_k` opcional.
-Busca items recientes en arXiv (`cs.AI`), los ordena por coincidencia lexica determinista y genera resumenes descriptivos via LLM.
+Le das una query (ej. `"large language models"`), una ventana temporal y cuantos resultados quieres. El sistema:
 
-- La seleccion y el orden son deterministas. No hay heuristicas probabilisticas.
-- El LLM solo interviene al final, como transformador de texto. No rankea, no filtra, no decide.
-- Cualquier violacion contractual aborta la ejecucion de forma explicita.
+1. Busca en arXiv `cs.AI` dentro de esa ventana.
+2. Rankea los papers por coincidencia lexica con tu query (determinista, sin ML).
+3. Selecciona los top-k.
+4. Genera un resumen breve de cada uno con `gemma3:4b` via Ollama.
+
+El ranking y la seleccion son siempre los mismos para el mismo input. Lo unico que varia entre ejecuciones es la redaccion de los resumenes.
 
 ---
 
-## Arquitectura
-
-Pipeline lineal, de orden fijo, ejecutado como `StateGraph` compilado de LangGraph:
+## Pipeline
 
 ```
 collect_input -> validate_input -> fetch -> normalize -> rank -> select -> summarize
 ```
 
-| Nodo             | Que hace                                                        |
-|------------------|-----------------------------------------------------------------|
-| `collect_input`  | Ingesta del input bruto del usuario.                            |
-| `validate_input` | Valida contrato de entrada; aplica defaults.                    |
-| `fetch`          | Obtiene items de arXiv, filtrados por ventana temporal.         |
-| `normalize`      | Mapea a schema interno cerrado (`title`, `link`, `content`).   |
-| `rank`           | Ordena por coincidencia lexica determinista contra el query.    |
-| `select`         | Corta a los primeros `top_k` del ranking.                      |
-| `summarize`      | Genera un resumen descriptivo por item via LLM.                |
+| Paso             | Que hace                                                      |
+|------------------|---------------------------------------------------------------|
+| `collect_input`  | Recoge lo que el usuario paso.                                |
+| `validate_input` | Verifica formato y aplica defaults.                           |
+| `fetch`          | Trae papers de arXiv filtrados por fecha.                     |
+| `normalize`      | Extrae `title`, `link` y `content` de cada paper.            |
+| `rank`           | Ordena por coincidencia de palabras con la query.             |
+| `select`         | Se queda con los primeros `top_k`.                            |
+| `summarize`      | Pide al LLM un resumen breve de cada paper seleccionado.      |
 
-**Invocacion:** `graph.invoke(input)` sobre el grafo compilado en `graph/graph.py:graph`.
+Si algo falla en cualquier paso, el pipeline se detiene y devuelve el motivo del error. No hay resultados parciales.
 
-Cada nodo retorna un dict parcial; LangGraph hace merge de estado.
-Para abortar, un nodo retorna `{"abort_reason": "CODIGO"}` y un conditional edge redirige a `END`. No hay resultados parciales.
-
-Contratos completos en [Documentation](#documentacion).
+El runtime es LangGraph: todo se ejecuta via `graph.invoke(input)`.
 
 ---
 
-## Contrato de I/O
+## Entrada y salida
 
-### Entrada
+**Entrada:**
 
-`InputState` (definido en `graph/state.py`):
+| Campo         | Tipo   | Notas                                         |
+|---------------|--------|-----------------------------------------------|
+| `query`       | string | Min. 2 palabras. Sin `AND`/`OR`/`NOT`.        |
+| `time_window` | string | `last_24h`, `last_3_days` o `last_7_days`.    |
+| `top_k`       | int    | Opcional. Entre 1 y 10, default 5.            |
 
-| Campo         | Tipo             | Restriccion                                   |
-|---------------|------------------|-----------------------------------------------|
-| `query`       | `str`            | Min. 2 palabras, sin operadores booleanos.    |
-| `time_window` | `str` (enum)     | `last_24h` \| `last_3_days` \| `last_7_days` |
-| `top_k`       | `int` (opcional) | Rango `[1..10]`, default `5`.                 |
-
-### Salida
-
-`OutputState` (definido en `graph/state.py`):
-
-- Exito: `{"output": {...}}`
-- Abort: `{"abort_reason": "CODIGO"}`
-
-Nunca coexisten. Codigos de abort en `docs/v1.1/Contrato_Sistema_v1.1.md`.
-
-Schema de `output`:
+**Salida (exito):**
 
 ```json
 {
-  "topic": "string",
-  "time_window": "string",
-  "results": [
-    {
-      "title": "string",
-      "idea_clave": "string (max 80 palabras)",
-      "relacion_con_query": "string (max 30 palabras)",
-      "link": "string"
-    }
-  ]
+  "output": {
+    "topic": "large language models",
+    "time_window": "last_7_days",
+    "results": [
+      {
+        "title": "Nombre del paper",
+        "idea_clave": "De que trata (max 80 palabras)",
+        "relacion_con_query": "Por que es relevante (max 30 palabras)",
+        "link": "http://arxiv.org/abs/..."
+      }
+    ]
+  }
 }
 ```
 
+**Salida (error):**
+
+```json
+{
+  "abort_reason": "INVALID_QUERY"
+}
+```
+
+Todos los codigos de error estan listados en `docs/v1.1/Contrato_Sistema_v1.1.md`.
+
 ---
 
-## Ejecucion local
+## Ejecutar
 
-**Requisitos:** Python 3.11+, [Ollama](https://ollama.com/) con `gemma3:4b` disponible.
+Necesitas Python 3.11+ y [Ollama](https://ollama.com/) con el modelo `gemma3:4b` descargado.
 
 ```bash
 pip install -r requirements.txt
 python run_pipeline.py
 ```
 
-`run_pipeline.py` es un wrapper liviano que delega en `graph.invoke(...)`.
-
 ---
 
 ## Tests
 
 ```bash
-# Unitarios — sin red, sin LLM
+# Unitarios (sin red, sin LLM)
 pytest -q -m "not integration and not e2e"
 
-# Integracion — requiere arXiv
+# Integracion (necesita arXiv)
 pytest -q -m integration
 
-# End-to-end — requiere arXiv + Ollama
+# End-to-end (necesita arXiv + Ollama)
 pytest -q -m e2e
 ```
 
-30 tests unitarios. Markers en `pytest.ini`.
+30 tests unitarios.
 
 ---
 
 ## Limitaciones conocidas
 
-**Fragilidad del LLM con `top_k` alto.**
-El modelo `gemma3:4b` (`num_predict=200`, `temperature=0.1`) no respeta de forma fiable los limites de schema (`idea_clave` max 80 palabras, `relacion_con_query` max 30 palabras) cuando procesa items con abstracts largos. La probabilidad de `SUMMARY_SCHEMA_VIOLATION` crece con `top_k`: a mayor numero de items, mas invocaciones al LLM y mas oportunidades de violacion. En pruebas de estres con `top_k=3`, la tasa de abort por schema fue de ~75%.
+El modelo `gemma3:4b` es pequeno y no siempre respeta los limites de palabras del schema. Cuantos mas papers procesa (top_k alto), mas probable es que alguno falle validacion. En pruebas con `top_k=3` la tasa de fallo rondo el 75%.
 
-El pipeline se comporta correctamente ante esta situacion: detecta la violacion, aborta y no devuelve resultados parciales. La fragilidad no es del sistema de gobernanza sino de la capacidad del modelo. Un modelo mayor o un `num_predict` mas generoso reducirian la tasa de fallo sin cambios en el pipeline.
+Cuando esto pasa, el pipeline detecta la violacion y aborta limpiamente. No es un bug del sistema sino una limitacion del modelo. Un modelo mas grande o un limite de tokens mas generoso lo resolveria sin tocar el pipeline.
 
 ---
 
-## Versionado
+## Versiones
 
-| Version | Estado | Runtime                      | Referencia                            |
-|---------|--------|------------------------------|---------------------------------------|
-| v1.1    | ACTIVE | `graph.invoke()` (LangGraph) | Branch `v1.1`, docs activos          |
-| v1      | FROZEN | Loop manual (legacy)         | Tag `v1.0.0`, branch `codex/legacy-v1` |
-
-v1 esta congelada. Cualquier cambio estructural sobre v1.1 implica version nueva.
-
-```bash
-# Para ejecutar el runtime historico de v1:
-git checkout v1.0.0
-```
+| Version | Estado | Que usa                      | Donde esta                             |
+|---------|--------|------------------------------|----------------------------------------|
+| v1.1    | FROZEN | LangGraph (`graph.invoke()`) | Tag `v1.1.0`, branch `v1.1`           |
+| v1      | FROZEN | Loop manual                  | Tag `v1.0.0`, branch `codex/legacy-v1` |
 
 ---
 
 ## Documentacion
 
-**v1.1 (activa):**
+Contratos y especificaciones detalladas:
 
-- [`Contrato_Sistema_v1.1.md`](docs/v1.1/Contrato_Sistema_v1.1.md) — contrato de sistema.
-- [`Contrato_Runtime_v1.1.md`](docs/v1.1/Contrato_Runtime_v1.1.md) — contrato de runtime.
-- [`Contrato_State_v1.1.md`](docs/v1.1/Contrato_State_v1.1.md) — contrato de state.
-- [`CHANGELOG_v1.1.md`](CHANGELOG_v1.1.md) — cambios detallados de v1 a v1.1.
-
-**v1 (legacy, solo referencia historica):**
-
-- [`docs/legacy/v1/`](docs/legacy/v1/) — contratos congelados de sistema, state y nodos.
+- [`Contrato_Sistema_v1.1.md`](docs/v1.1/Contrato_Sistema_v1.1.md)
+- [`Contrato_Runtime_v1.1.md`](docs/v1.1/Contrato_Runtime_v1.1.md)
+- [`Contrato_State_v1.1.md`](docs/v1.1/Contrato_State_v1.1.md)
+- [`CHANGELOG_v1.1.md`](CHANGELOG_v1.1.md) — que cambio de v1 a v1.1.
+- [`docs/legacy/v1/`](docs/legacy/v1/) — documentacion historica de v1.
