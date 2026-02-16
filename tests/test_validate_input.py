@@ -1,9 +1,7 @@
 """
 Tests contractuales: validate_input + collect_input.
-Ref: Contrato_Validate_Input.md, Contrato_Collect_Input.md
+Ref: docs/v1.1/Contrato_Sistema_v1.1.md
 """
-
-import pytest
 
 from graph.nodes.collect_input import collect_input
 from graph.nodes.validate_input import validate_input
@@ -25,17 +23,22 @@ class TestValidateInput:
         assert validate_input(state)["input_validated"]["top_k"] == 5
 
     def test_invalid_query(self):
-        with pytest.raises(ValueError, match="INVALID_QUERY"):
-            validate_input(_raw(query="AI"))
+        result = validate_input(_raw(query="AI"))
+        assert result["abort_reason"] == "INVALID_QUERY"
 
     def test_invalid_time_window(self):
-        with pytest.raises(ValueError, match="INVALID_TIME_WINDOW"):
-            validate_input(_raw(tw="last_30_days"))
+        result = validate_input(_raw(tw="last_30_days"))
+        assert result["abort_reason"] == "INVALID_TIME_WINDOW"
 
     def test_invalid_top_k(self):
-        with pytest.raises(ValueError, match="INVALID_TOP_K"):
-            validate_input(_raw(top_k=0))
+        result = validate_input(_raw(top_k=0))
+        assert result["abort_reason"] == "INVALID_TOP_K"
 
-    def test_collect_input_none(self):
-        with pytest.raises(ValueError, match="EMPTY_INPUT_PAYLOAD"):
-            collect_input(None)
+    def test_collect_input_empty(self):
+        result = collect_input({})
+        assert result["abort_reason"] == "EMPTY_INPUT_PAYLOAD"
+
+    def test_collect_input_happy(self):
+        state = {"query": "machine learning", "time_window": "last_7_days", "top_k": 3}
+        result = collect_input(state)
+        assert result["input_raw"] == state

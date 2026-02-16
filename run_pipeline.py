@@ -1,38 +1,22 @@
+"""
+Runtime v1.1 — ejecuta el pipeline via graph.invoke().
+
+El grafo LangGraph compilado gestiona el orden de nodos,
+el abort handling via conditional edges y el merge de state.
+"""
+
 import json
 
-from graph.nodes.collect_input import collect_input
-from graph.nodes.validate_input import validate_input
-from graph.nodes.fetch import fetch
-from graph.nodes.normalize import normalize
-from graph.nodes.rank import rank
-from graph.nodes.select import select
-from graph.nodes.summarize import summarize
-
-_PIPELINE = [
-    collect_input,
-    validate_input,
-    fetch,
-    normalize,
-    rank,
-    select,
-    summarize,
-]
+from graph.graph import graph
 
 if __name__ == "__main__":
-    state = {
+    result = graph.invoke({
         "query": "large language models",
         "time_window": "last_7_days",
         "top_k": 3,
-    }
+    })
 
-    for node in _PIPELINE:
-        try:
-            state = node(state)
-        except ValueError as e:
-            state = {"abort_reason": str(e)}
-            break
-
-    if "abort_reason" in state:
-        print(f"ABORT: {state['abort_reason']}")
+    if result.get("abort_reason"):
+        print(f"ABORT: {result['abort_reason']}")
     else:
-        print(json.dumps(state["output"], indent=2, ensure_ascii=False))
+        print(json.dumps(result["output"], indent=2, ensure_ascii=False))

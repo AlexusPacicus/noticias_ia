@@ -1,9 +1,7 @@
 """
 Tests contractuales: rank.
-Ref: Contrato_Rank.md
+Ref: docs/v1.1/Contrato_Sistema_v1.1.md
 """
-
-import pytest
 
 from graph.nodes.rank import rank
 
@@ -51,5 +49,5 @@ class TestRank:
 
     def test_query_empty_after_normalization_aborts(self):
         items = [_item("Paper", "http://a.com/1", "Content.")]
-        with pytest.raises(ValueError, match="RANK_QUERY_EMPTY_AFTER_NORMALIZATION"):
-            rank(_state("!! ##", items))
+        result = rank(_state("!! ##", items))
+        assert result["abort_reason"] == "RANK_QUERY_EMPTY_AFTER_NORMALIZATION"

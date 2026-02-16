@@ -1,11 +1,19 @@
-def select(state: dict) -> dict:
+from __future__ import annotations
+
+from graph.state import PipelineState
+
+
+def select(state: PipelineState) -> dict:
+    """Selecciona los primeros top_k elementos de ranked_items.
+
+    Retorna selected_items o abort_reason.
+    """
     ranked_items = state.get("ranked_items")
     if not isinstance(ranked_items, list):
-        raise ValueError("SELECT_MISSING_RANKED_ITEMS")
+        return {"abort_reason": "SELECT_MISSING_RANKED_ITEMS"}
 
     top_k = state["input_validated"]["top_k"]
     if not isinstance(top_k, int) or top_k <= 0:
-        raise ValueError("SELECT_TOPK_INVALID")
+        return {"abort_reason": "SELECT_TOPK_INVALID"}
 
-    state["selected_items"] = ranked_items[:top_k]
-    return state
+    return {"selected_items": ranked_items[:top_k]}

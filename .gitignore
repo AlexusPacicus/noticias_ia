@@ -8,5 +8,4 @@ __pycache__/
 .pytest_cache/
 lecciones.md
 run.py
-graph/graph.py
 tests/prueba_normalize_schema.py

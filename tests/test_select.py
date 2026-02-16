@@ -1,9 +1,7 @@
 """
 Tests contractuales: select.
-Ref: Contrato_Select.md
+Ref: docs/v1.1/Contrato_Sistema_v1.1.md
 """
-
-import pytest
 
 from graph.nodes.select import select
 
@@ -31,21 +29,21 @@ class TestSelect:
 
     def test_missing_ranked_items_aborts(self):
         state = {"input_validated": {"query": "ml", "time_window": "last_7_days", "top_k": 3}}
-        with pytest.raises(ValueError, match="SELECT_MISSING_RANKED_ITEMS"):
-            select(state)
+        result = select(state)
+        assert result["abort_reason"] == "SELECT_MISSING_RANKED_ITEMS"
 
     def test_ranked_items_not_list_aborts(self):
         state = {
             "input_validated": {"query": "ml", "time_window": "last_7_days", "top_k": 3},
             "ranked_items": "not a list",
         }
-        with pytest.raises(ValueError, match="SELECT_MISSING_RANKED_ITEMS"):
-            select(state)
+        result = select(state)
+        assert result["abort_reason"] == "SELECT_MISSING_RANKED_ITEMS"
 
     def test_topk_invalid_aborts(self):
         state = {
             "input_validated": {"query": "ml", "time_window": "last_7_days", "top_k": 0},
             "ranked_items": [],
         }
-        with pytest.raises(ValueError, match="SELECT_TOPK_INVALID"):
-            select(state)
+        result = select(state)
+        assert result["abort_reason"] == "SELECT_TOPK_INVALID"

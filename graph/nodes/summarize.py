@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import json
 
-from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama import ChatOllama
 
+from graph.state import PipelineState
 
 _llm = ChatOllama(
     model="gemma3:4b",
@@ -34,28 +37,34 @@ _PROMPT = ChatPromptTemplate.from_messages([
 
 _chain = _PROMPT | _llm
 
-
 _ALLOWED_KEYS = {"idea_clave", "relacion_con_query"}
 
 
-def _validate_structure(parsed: dict) -> None:
+def _validate_structure(parsed: dict) -> str | None:
+    """Valida schema del LLM. Retorna codigo de abort o None si es valido."""
     if set(parsed.keys()) != _ALLOWED_KEYS:
-        raise ValueError("SUMMARY_SCHEMA_VIOLATION")
+        return "SUMMARY_SCHEMA_VIOLATION"
 
     idea = parsed["idea_clave"]
     relacion = parsed["relacion_con_query"]
 
     if not isinstance(idea, str) or not idea.strip():
-        raise ValueError("SUMMARY_SCHEMA_VIOLATION")
+        return "SUMMARY_SCHEMA_VIOLATION"
     if not isinstance(relacion, str) or not relacion.strip():
-        raise ValueError("SUMMARY_SCHEMA_VIOLATION")
+        return "SUMMARY_SCHEMA_VIOLATION"
     if len(idea.split()) > 80:
-        raise ValueError("SUMMARY_SCHEMA_VIOLATION")
+        return "SUMMARY_SCHEMA_VIOLATION"
     if len(relacion.split()) > 30:
-        raise ValueError("SUMMARY_SCHEMA_VIOLATION")
+        return "SUMMARY_SCHEMA_VIOLATION"
+
+    return None
 
 
-def summarize(state: dict) -> dict:
+def summarize(state: PipelineState) -> dict:
+    """Genera resumenes descriptivos mediante LLM para cada selected_item.
+
+    Retorna output o abort_reason.
+    """
     selected = state["selected_items"]
     validated = state["input_validated"]
 
@@ -66,8 +75,7 @@ def summarize(state: dict) -> dict:
     }
 
     if not selected:
-        state["output"] = output
-        return state
+        return {"output": output}
 
     results = []
     for item in selected:
@@ -78,14 +86,16 @@ def summarize(state: dict) -> dict:
                 "query": validated["query"],
             })
         except Exception:
-            raise ValueError("SUMMARY_LLM_RUNTIME_ERROR")
+            return {"abort_reason": "SUMMARY_LLM_RUNTIME_ERROR"}
 
         try:
             parsed = json.loads(response.content)
         except Exception:
-            raise ValueError("SUMMARY_SCHEMA_VIOLATION")
+            return {"abort_reason": "SUMMARY_SCHEMA_VIOLATION"}
 
-        _validate_structure(parsed)
+        violation = _validate_structure(parsed)
+        if violation:
+            return {"abort_reason": violation}
 
         results.append({
             "title": item["title"],
@@ -95,5 +105,4 @@ def summarize(state: dict) -> dict:
         })
 
     output["results"] = results
-    state["output"] = output
-    return state
+    return {"output": output}

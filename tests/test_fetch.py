@@ -1,8 +1,8 @@
 """
 Tests contractuales: fetch.
-Ref: Contrato_Fetch.md
+Ref: docs/v1.1/Contrato_Sistema_v1.1.md
 
-Tests marcados @pytest.mark.integration requieren conexión a arXiv.
+Tests marcados @pytest.mark.integration requieren conexion a arXiv.
 """
 
 import pytest
@@ -20,10 +20,13 @@ class TestFetchIntegration:
 
     def test_happy_path(self):
         result = fetch(_state())
-        assert isinstance(result["external_units"], list)
-        if result["external_units"]:
-            import xml.etree.ElementTree as ET
-            assert isinstance(result["external_units"][0], ET.Element)
+        units = result["external_units"]
+        assert isinstance(units, list)
+        if units:
+            assert isinstance(units[0], dict)
+            assert "title" in units[0]
+            assert "id" in units[0]
+            assert "summary" in units[0]
 
 
 class TestFetchErrors:
@@ -31,8 +34,8 @@ class TestFetchErrors:
     def test_source_error(self):
         with patch("graph.nodes.fetch.urllib.request.urlopen",
                     side_effect=Exception("connection refused")):
-            with pytest.raises(ValueError, match="FETCH_SOURCE_ERROR"):
-                fetch(_state())
+            result = fetch(_state())
+        assert result["abort_reason"] == "FETCH_SOURCE_ERROR"
 
     def test_not_iterable(self):
         mock_resp = MagicMock()
@@ -40,5 +43,5 @@ class TestFetchErrors:
         mock_resp.__enter__ = lambda s: s
         mock_resp.__exit__ = MagicMock(return_value=False)
         with patch("graph.nodes.fetch.urllib.request.urlopen", return_value=mock_resp):
-            with pytest.raises(ValueError, match="FETCH_NOT_ITERABLE"):
-                fetch(_state())
+            result = fetch(_state())
+        assert result["abort_reason"] == "FETCH_NOT_ITERABLE"

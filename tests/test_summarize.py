@@ -1,11 +1,10 @@
 """
 Tests contractuales: summarize.
-Ref: Contrato_Summarize.md
+Ref: docs/v1.1/Contrato_Sistema_v1.1.md
 """
 
 import json
 
-import pytest
 from unittest.mock import patch, MagicMock
 
 from graph.nodes.summarize import summarize
@@ -55,27 +54,27 @@ class TestSummarize:
         resp = _mock_response(long, "Related.")
         with patch("graph.nodes.summarize._chain") as mc:
             mc.invoke.return_value = resp
-            with pytest.raises(ValueError, match="SUMMARY_SCHEMA_VIOLATION"):
-                summarize(_state([_item()]))
+            result = summarize(_state([_item()]))
+        assert result["abort_reason"] == "SUMMARY_SCHEMA_VIOLATION"
 
     def test_llm_runtime_error(self):
         with patch("graph.nodes.summarize._chain") as mc:
             mc.invoke.side_effect = Exception("timeout")
-            with pytest.raises(ValueError, match="SUMMARY_LLM_RUNTIME_ERROR"):
-                summarize(_state([_item()]))
+            result = summarize(_state([_item()]))
+        assert result["abort_reason"] == "SUMMARY_LLM_RUNTIME_ERROR"
 
     def test_invalid_json_aborts(self):
         resp = MagicMock()
         resp.content = "not json"
         with patch("graph.nodes.summarize._chain") as mc:
             mc.invoke.return_value = resp
-            with pytest.raises(ValueError, match="SUMMARY_SCHEMA_VIOLATION"):
-                summarize(_state([_item()]))
+            result = summarize(_state([_item()]))
+        assert result["abort_reason"] == "SUMMARY_SCHEMA_VIOLATION"
 
     def test_missing_field_aborts(self):
         resp = MagicMock()
         resp.content = json.dumps({"idea_clave": "Summary."})
         with patch("graph.nodes.summarize._chain") as mc:
             mc.invoke.return_value = resp
-            with pytest.raises(ValueError, match="SUMMARY_SCHEMA_VIOLATION"):
-                summarize(_state([_item()]))
+            result = summarize(_state([_item()]))
+        assert result["abort_reason"] == "SUMMARY_SCHEMA_VIOLATION"

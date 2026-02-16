@@ -1,29 +1,30 @@
-_NS = {"atom": "http://www.w3.org/2005/Atom"}
+from __future__ import annotations
+
+from graph.state import PipelineState
 
 
-def normalize(state: dict) -> dict:
+def normalize(state: PipelineState) -> dict:
+    """Mapea external_units (dicts) a normalized_items con schema minimo cerrado.
+
+    Retorna normalized_items o abort_reason.
+    """
     external_units = state["external_units"]
 
     if not external_units:
-        state["normalized_items"] = []
-        return state
+        return {"normalized_items": []}
 
     normalized = []
-    for entry in external_units:
-        title_el = entry.find("atom:title", _NS)
-        id_el = entry.find("atom:id", _NS)
-        summary_el = entry.find("atom:summary", _NS)
-
-        title = title_el.text if title_el is not None else None
-        link = id_el.text if id_el is not None else None
-        content = summary_el.text if summary_el is not None else None
+    for unit in external_units:
+        title = unit.get("title")
+        link = unit.get("id")
+        content = unit.get("summary")
 
         if not isinstance(title, str) or not title.strip():
-            raise ValueError("NORMALIZE_MISSING_TITLE")
+            return {"abort_reason": "NORMALIZE_MISSING_TITLE"}
         if not isinstance(link, str) or not link.strip():
-            raise ValueError("NORMALIZE_MISSING_LINK")
+            return {"abort_reason": "NORMALIZE_MISSING_LINK"}
         if not isinstance(content, str) or not content.strip():
-            raise ValueError("NORMALIZE_MISSING_CONTENT")
+            return {"abort_reason": "NORMALIZE_MISSING_CONTENT"}
 
         normalized.append({
             "title": title.strip(),
@@ -31,5 +32,4 @@ def normalize(state: dict) -> dict:
             "content": content.strip(),
         })
 
-    state["normalized_items"] = normalized
-    return state
+    return {"normalized_items": normalized}
