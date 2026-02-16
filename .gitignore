@@ -9,3 +9,6 @@ __pycache__/
 lecciones.md
 run.py
 tests/prueba_normalize_schema.py
+.langgraph_api/
+results.json
+run_v11_test_battery.py

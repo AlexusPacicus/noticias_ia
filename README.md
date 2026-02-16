@@ -113,6 +113,15 @@ pytest -q -m e2e
 
 ---
 
+## Limitaciones conocidas
+
+**Fragilidad del LLM con `top_k` alto.**
+El modelo `gemma3:4b` (`num_predict=200`, `temperature=0.1`) no respeta de forma fiable los limites de schema (`idea_clave` max 80 palabras, `relacion_con_query` max 30 palabras) cuando procesa items con abstracts largos. La probabilidad de `SUMMARY_SCHEMA_VIOLATION` crece con `top_k`: a mayor numero de items, mas invocaciones al LLM y mas oportunidades de violacion. En pruebas de estres con `top_k=3`, la tasa de abort por schema fue de ~75%.
+
+El pipeline se comporta correctamente ante esta situacion: detecta la violacion, aborta y no devuelve resultados parciales. La fragilidad no es del sistema de gobernanza sino de la capacidad del modelo. Un modelo mayor o un `num_predict` mas generoso reducirian la tasa de fallo sin cambios en el pipeline.
+
+---
+
 ## Versionado
 
 | Version | Estado | Runtime                      | Referencia                            |
