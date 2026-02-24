@@ -1,0 +1,5 @@
+dce155d README reescrito con tono legible para desarrolladores
+e74d222 v1.1 FROZEN — pipeline contractual LangGraph, 30 tests passing
+08168eb Readme reestructurado
+aadba30 Readme estructurado
+af008a8 v1.1: LangGraph runtime oficial, reorg docs legacy/active, state contractual y tests alineados

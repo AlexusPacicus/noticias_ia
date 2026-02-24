@@ -1,0 +1,136 @@
+.
+├── CHANGELOG_v1.1.md
+├── docs
+│   ├── legacy
+│   │   └── v1
+│   │       ├── Contrato_Sistema_v1.md
+│   │       ├── Contrato_State_v1.md
+│   │       ├── nodos
+│   │       └── README.md
+│   ├── README.md
+│   ├── v1.1
+│   │   ├── Contrato_Runtime_v1.1.md
+│   │   ├── Contrato_Sistema_v1.1.md
+│   │   └── Contrato_State_v1.1.md
+│   └── v2
+│       ├── Contrato_Sistema_v2.md
+│       ├── Contrato_State_v2.md
+│       ├── Diseno_v2.md
+│       └── nodos
+│           ├── Contrato_BM25.md
+│           ├── Contrato_Collect_Input.md
+│           ├── Contrato_Dedupe.md
+│           ├── Contrato_Fetch_Arxiv.md
+│           ├── Contrato_Fetch_HF.md
+│           ├── Contrato_Fetch_Router.md
+│           ├── Contrato_Filter_Time.md
+│           ├── Contrato_Merge_Source_Units.md
+│           ├── Contrato_Normalize.md
+│           ├── Contrato_Select.md
+│           ├── Contrato_Summarize_Map.md
+│           ├── Contrato_Summarize_Reduce.md
+│           └── Contrato_Validate_Input.md
+├── graph
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-311.pyc
+│   │   ├── graph.cpython-311.pyc
+│   │   └── state.cpython-311.pyc
+│   ├── nodes
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       ├── __init__.cpython-311.pyc
+│   │       ├── collect_input.cpython-311.pyc
+│   │       ├── fetch.cpython-311.pyc
+│   │       ├── filter_by_time_window.cpython-311.pyc
+│   │       ├── normalize.cpython-311.pyc
+│   │       ├── rank.cpython-311.pyc
+│   │       ├── select.cpython-311.pyc
+│   │       ├── summarize.cpython-311.pyc
+│   │       └── validate_input.cpython-311.pyc
+│   └── v2
+│       ├── __init__.py
+│       ├── __pycache__
+│       │   ├── __init__.cpython-311.pyc
+│       │   ├── graph.cpython-311.pyc
+│       │   └── state.cpython-311.pyc
+│       ├── graph.py
+│       ├── nodes
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   ├── collect_input.py
+│       │   ├── dedupe.py
+│       │   ├── fetch_arxiv.py
+│       │   ├── fetch_huggingface.py
+│       │   ├── fetch_router.py
+│       │   ├── filter_by_time_window.py
+│       │   ├── merge_source_units.py
+│       │   ├── normalize.py
+│       │   ├── rank_bm25.py
+│       │   ├── select.py
+│       │   ├── summarize_map.py
+│       │   ├── summarize_reduce.py
+│       │   └── validate_input.py
+│       └── state.py
+├── langgraph.json
+├── lecciones.md
+├── pytest.ini
+├── README.md
+├── requirements.txt
+├── results.json
+├── run_pipeline_v2.py
+├── run_v11_test_battery.py
+├── snapshot_tree_v2.txt
+└── tests
+    ├── __init__.py
+    ├── __pycache__
+    │   ├── __init__.cpython-311.pyc
+    │   ├── conftest.cpython-311-pytest-9.0.2.pyc
+    │   ├── test_e2e.cpython-311-pytest-9.0.2.pyc
+    │   ├── test_fetch.cpython-311-pytest-9.0.2.pyc
+    │   ├── test_normalize.cpython-311-pytest-9.0.2.pyc
+    │   ├── test_rank.cpython-311-pytest-9.0.2.pyc
+    │   ├── test_select.cpython-311-pytest-9.0.2.pyc
+    │   ├── test_summarize.cpython-311-pytest-9.0.2.pyc
+    │   └── test_validate_input.cpython-311-pytest-9.0.2.pyc
+    ├── prueba_normalize_schema.py
+    └── v2
+        ├── __pycache__
+        │   ├── hp_e2e.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_abort_until_rank.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_canonical_id.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_dedupe.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_fetch_phase_v2.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_filter_by_time_window.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_graph_abort_until_select.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_graph_until_rank.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_graph_until_select.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_live_smoke.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_normalize.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_rank_bm25.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_select.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_summarize_integration.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_summarize_map.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_summarize_reduce.cpython-311-pytest-9.0.2.pyc
+        │   ├── test_v2_determinism_until_select.cpython-311-pytest-9.0.2.pyc
+        │   └── test_v2_fetchphase_determinism.cpython-311-pytest-9.0.2.pyc
+        ├── hp_e2e.py
+        ├── test_abort_until_rank.py
+        ├── test_canonical_id.py
+        ├── test_dedupe.py
+        ├── test_fetch_phase_v2.py
+        ├── test_filter_by_time_window.py
+        ├── test_graph_abort_until_select.py
+        ├── test_graph_until_rank.py
+        ├── test_graph_until_select.py
+        ├── test_live_smoke.py
+        ├── test_normalize.py
+        ├── test_rank_bm25.py
+        ├── test_select.py
+        ├── test_summarize_integration.py
+        ├── test_summarize_map.py
+        ├── test_summarize_reduce.py
+        ├── test_v2_determinism_until_select.py
+        └── test_v2_fetchphase_determinism.py
+
+20 directories, 114 files

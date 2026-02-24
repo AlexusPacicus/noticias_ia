@@ -123,6 +123,8 @@ Cuando esto pasa, el pipeline detecta la violacion y aborta limpiamente. No es u
 | v1.1    | FROZEN | LangGraph (`graph.invoke()`) | Tag `v1.1.0`, branch `v1.1`           |
 | v1      | FROZEN | Loop manual                  | Tag `v1.0.0`, branch `codex/legacy-v1` |
 
+This branch exclusively maintains v2 architecture. v1 is available in historical tag.
+
 ---
 
 ## Documentacion
