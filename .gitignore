@@ -11,4 +11,5 @@ run.py
 tests/prueba_normalize_schema.py
 .langgraph_api/
 results.json
-run_v11_test_battery.py
+run_v11_test_battery.py__pycache__/
+*.pyc

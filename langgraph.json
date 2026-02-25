@@ -1,7 +1,0 @@
-{
-  "dependencies": ["."],
-  "graphs": {
-    "noticias": "./graph/graph.py:graph"
-  },
-  "env": "./.env"
-}
