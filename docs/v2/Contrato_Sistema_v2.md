@@ -3,7 +3,7 @@
 ## 1. Estado
 
 - Version: v2
-- Estado: DRAFT
+- Estado: FROZEN
 - Runtime oficial: grafo compilado ejecutado exclusivamente vía `graph.invoke(input)`
 - Sustituye semánticamente la capa de sistema de v1.1.
 
@@ -56,8 +56,8 @@ Ningún nodo:
 
 - Ejecución concurrente permitida únicamente en múltiples `fetch_*`.
 - `summarize_map` MUST ejecutarse de forma secuencial determinista.
-
-La concurrencia en fetch es permitida pero no garantizada.
+- La ejecución secuencial de `fetch_*` es contractualmente válida.
+- Las invariantes de merge y orden aplican independientemente del modelo de ejecución.
 
 ### 4.2 Aislamiento
 
@@ -128,8 +128,7 @@ Restricciones:
   "results": [
     {
       "title": "string",
-      "idea_clave": "string",
-      "relacion_con_query": "string",
+      "summary": "string",
       "link": "string",
       "source": "string",
       "rank_position": "int"
@@ -144,6 +143,7 @@ Restricciones:
 - `rank_position` MUST reflejar ranking previo a summarize.
 - `rank_position` MUST NOT recalcularse.
 - `output` y `abort_reason` MUST NOT coexistir.
+- Coherencia de summary: `summary_stats.ok + summary_stats.failed == len(selected_items)` según `Contrato_State_v2` §7.11.
 
 ---
 
@@ -184,7 +184,7 @@ Principios:
 ### Gate B — Fetch
 
 - `FETCH_ALL_SOURCES_FAILED`
-- `UNKNOWN_SOURCE_PRIORIY`
+- `UNKNOWN_SOURCE_PRIORITY`
 
 Reglas:
 
@@ -253,7 +253,7 @@ En v2:
 
 ## 13. State gobernado
 
-Lista cerrada de 15 claves permitidas.
+Lista cerrada de 16 claves permitidas.
 
 Claves inyectadas por runtime (`graph.invoke`):
 

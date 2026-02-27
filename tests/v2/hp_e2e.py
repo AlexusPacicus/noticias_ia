@@ -1,3 +1,6 @@
+import pytest
+
+
 @pytest.mark.integration
 def test_e2e_happy_path(monkeypatch):
     import graph.v2.graph as gmod
@@ -41,13 +44,15 @@ def test_e2e_happy_path(monkeypatch):
     monkeypatch.setattr(gmod, "fetch_huggingface", ok_hf)
 
     # 2. Mock summary válido
-    def fake_summarize_one(_state):
+    def fake_generate_summary(_item):
         return {
-            "idea_clave": "Idea",
-            "relacion_con_query": "Relacion"
+            "summary": "Idea. Relacion."
         }
 
-    monkeypatch.setattr(gmod, "summarize_one", fake_summarize_one)
+    monkeypatch.setattr(
+        "graph.v2.nodes.summarize_map.generate_summary",
+        fake_generate_summary
+    )
 
     g = gmod.build_graph()
 
@@ -80,6 +85,7 @@ def test_e2e_happy_path(monkeypatch):
         "deduped_items",
         "ranked_items",
         "selected_items",
+        "summary_items",
         "summary_stats",
         "output",
     }

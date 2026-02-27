@@ -1,6 +1,17 @@
 from __future__ import annotations
 from typing import Dict, Any, List
 
+_SUMMARY_ITEM_KEYS = {"rank_position", "title", "summary", "link", "source"}
+
+
+def _assert_summary_items_schema(summary_items: List[Dict[str, Any]]) -> None:
+    for item in summary_items:
+        assert isinstance(item, dict), "Invalid summary item type"
+        assert set(item.keys()) == _SUMMARY_ITEM_KEYS, "Invalid summary item keys"
+        assert isinstance(item["summary"], str) and item["summary"].strip(), (
+            "Invalid summary value"
+        )
+
 
 def summarize_reduce(state: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -35,6 +46,7 @@ def summarize_reduce(state: Dict[str, Any]) -> Dict[str, Any]:
     assert len(summary_items) == ok, (
         "Invariant violation: len(summary_items) != summary_stats.ok"
     )
+    _assert_summary_items_schema(summary_items)
 
     # ----------------------------------------
     # Abort gate

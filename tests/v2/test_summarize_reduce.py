@@ -25,16 +25,14 @@ def test_summarize_reduce_happy_path():
             {
                 "rank_position": 1,
                 "title": "A",
-                "idea_clave": "x",
-                "relacion_con_query": "y",
+                "summary": "x",
                 "link": "l1",
                 "source": "arxiv",
             },
             {
                 "rank_position": 2,
                 "title": "B",
-                "idea_clave": "x",
-                "relacion_con_query": "y",
+                "summary": "x",
                 "link": "l2",
                 "source": "hf",
             },
@@ -69,16 +67,14 @@ def test_summarize_reduce_reorders_by_rank_position():
             {
                 "rank_position": 3,
                 "title": "C",
-                "idea_clave": "x",
-                "relacion_con_query": "y",
+                "summary": "x",
                 "link": "l3",
                 "source": "arxiv",
             },
             {
                 "rank_position": 1,
                 "title": "A",
-                "idea_clave": "x",
-                "relacion_con_query": "y",
+                "summary": "x",
                 "link": "l1",
                 "source": "arxiv",
             },
@@ -123,8 +119,7 @@ def test_summarize_reduce_invariant_violation():
             {
                 "rank_position": 1,
                 "title": "A",
-                "idea_clave": "x",
-                "relacion_con_query": "y",
+                "summary": "x",
                 "link": "l1",
                 "source": "arxiv",
             }

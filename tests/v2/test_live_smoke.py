@@ -17,4 +17,4 @@ def test_live_smoke_contract():
         assert isinstance(result["abort_reason"], str)
     else:
         assert "output" in result
-        assert isinstance(result["output"], list)
+        assert isinstance(result["output"], dict)

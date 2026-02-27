@@ -13,3 +13,4 @@ tests/prueba_normalize_schema.py
 results.json
 run_v11_test_battery.py__pycache__/
 *.pyc
+artifacts/

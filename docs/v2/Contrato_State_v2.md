@@ -3,7 +3,7 @@
 ## 1. Estado
 
 - Version: v2
-- Estado: DRAFT
+- Estado: FROZEN
 - Complementa:
   - Contrato de Sistema v2 → `Contrato_Sistema_v2`
   - Documento de Diseño v2 → `Diseno_v2`
@@ -137,7 +137,7 @@ Un nodo solo puede leer claves ya materializadas previamente en el pipeline fijo
 | `rank_bm25` | `deduped_items`, `input_validated.query` |
 | `select` | `ranked_items`, `input_validated.top_k` |
 | `summarize_map` | `selected_items` |
-| `summarize_reduce` | `summary_stats`, `summary_items` |
+| `summarize_reduce` | `summary_stats`, `summary_items`, `input_validated.query`, `input_validated.time_window`, `input_validated.top_k` |
 
 ### Prohibiciones explícitas
 
@@ -145,7 +145,7 @@ Un nodo solo puede leer claves ya materializadas previamente en el pipeline fijo
 - `rank_bm25` no puede leer `selected_items`.
 - `summarize_map` no puede leer `ranked_items`.
 - Ningún nodo puede leer `output`.
-- Ningún nodo puede usar `abort_reason` para lógica de negocio.
+- Los nodos MUST NOT leer `abort_reason`.
 
 ---
 
@@ -221,7 +221,24 @@ Reglas:
 
 ### 7.5 `merged_source_units`
 
-Lista ordenada determinísticamente por:
+Shape mínimo contractual:
+
+```json
+[
+  {
+    "source": "string",
+    "source_seq": "int",
+    "payload": "object"
+  }
+]
+```
+
+Reglas:
+
+- MUST ser `List[SourceUnit]`.
+- Cada elemento MUST preservar `source` y `source_seq` de `source_units`.
+- El contenido de `payload` MUST corresponder al item original de la fuente.
+- MUST estar ordenada determinísticamente por:
 
 ```
 (SOURCE_PRIORITY.index(source), source_seq)
@@ -289,8 +306,7 @@ Estructura cerrada:
   {
     "rank_position": "int",
     "title": "string",
-    "idea_clave": "string",
-    "relacion_con_query": "string",
+    "summary": "string",
     "link": "string",
     "source": "string"
   }
@@ -373,7 +389,7 @@ No existe `input_validated` ni claves posteriores.
 
 ### 9.4 Abort global de fetch
 
-Gate B. Código: `FETCH_ALL_SOURCES_FAILED`.
+Gate B. Códigos: `FETCH_ALL_SOURCES_FAILED`, `UNKNOWN_SOURCE_PRIORITY`.
 
 Nodo: `merge_source_units`. → `Contrato_Sistema_v2` §10
 
@@ -406,6 +422,10 @@ Nodo: `rank_bm25`. → `Contrato_Sistema_v2` §10
 Existen: `query`, `time_window`, `top_k`, `input_raw`, `input_validated`, `source_units`, `merged_source_units`, `normalized_items`, `filtered_items`, `deduped_items`, `abort_reason`.
 
 No existe `ranked_items` ni claves posteriores.
+
+Regla explícita de Gate D:
+
+- `rank_bm25` MUST NOT crear `ranked_items` cuando emite `RANK_QUERY_EMPTY_AFTER_NORMALIZATION`.
 
 ### 9.7 Abort en select
 
@@ -441,7 +461,7 @@ Además de la existencia de claves, los siguientes aborts imponen restricciones 
 
 ## 10. Invariantes globales v2
 
-- Determinismo estructural garantizado hasta `rank_bm25`. → `Contrato_Sistema_v2` · `Diseno_v2`
+- Determinismo estructural: → `Contrato_Sistema_v2` §12
 - Dedupe exclusivamente estructural.
 - Ranking puramente textual.
 - No dependencia del orden de finalización en concurrencia.

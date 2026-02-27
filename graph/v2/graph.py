@@ -18,8 +18,25 @@ from graph.v2.nodes.select import select
 from graph.v2.nodes.summarize_map import summarize_map
 from graph.v2.nodes.summarize_reduce import summarize_reduce
 
+ALL_FETCH_SOURCES = ("arxiv", "huggingface")
 
-def build_graph(live: bool = False):
+
+def _normalize_sources(sources):
+    if sources is None:
+        return ALL_FETCH_SOURCES
+
+    provided = tuple(sources)
+    unknown = set(provided) - set(ALL_FETCH_SOURCES)
+    if unknown:
+        raise ValueError(f"Unknown sources: {sorted(unknown)}")
+
+    ordered = tuple(s for s in ALL_FETCH_SOURCES if s in provided)
+    if not ordered:
+        raise ValueError("At least one source must be enabled")
+    return ordered
+
+
+def build_graph(live: bool = False, sources=None):
     """
     Construye el grafo v2.
 
@@ -27,6 +44,7 @@ def build_graph(live: bool = False):
     - live=True: nodos de fetch usan timestamps dinámicos recientes.
     """
     mode = "live" if live else "stub"
+    active_sources = _normalize_sources(sources)
 
     builder = StateGraph(V2State)
 
@@ -43,20 +61,23 @@ def build_graph(live: bool = False):
     builder.add_node("validate_input", validate_input)
     builder.add_node("fetch_router", fetch_router)
 
-    if mode == "stub":
-        # Comportamiento original: nodos deterministas.
-        builder.add_node("fetch_arxiv", fetch_arxiv)
-        builder.add_node("fetch_huggingface", fetch_huggingface)
-    else:
-        # En modo live, inyectamos el modo explícitamente vía closures.
-        def _fetch_arxiv_node(state, _mode=mode):
-            return fetch_arxiv_with_mode(state, mode=_mode)
+    if "arxiv" in active_sources:
+        if mode == "stub":
+            builder.add_node("fetch_arxiv", fetch_arxiv)
+        else:
+            def _fetch_arxiv_node(state, _mode=mode):
+                return fetch_arxiv_with_mode(state, mode=_mode)
 
-        def _fetch_huggingface_node(state, _mode=mode):
-            return fetch_huggingface_with_mode(state, mode=_mode)
+            builder.add_node("fetch_arxiv", _fetch_arxiv_node)
 
-        builder.add_node("fetch_arxiv", _fetch_arxiv_node)
-        builder.add_node("fetch_huggingface", _fetch_huggingface_node)
+    if "huggingface" in active_sources:
+        if mode == "stub":
+            builder.add_node("fetch_huggingface", fetch_huggingface)
+        else:
+            def _fetch_huggingface_node(state, _mode=mode):
+                return fetch_huggingface_with_mode(state, mode=_mode)
+
+            builder.add_node("fetch_huggingface", _fetch_huggingface_node)
 
     builder.add_node("merge_source_units", merge_source_units)
     builder.add_node("normalize", normalize)
@@ -69,7 +90,12 @@ def build_graph(live: bool = False):
 
     builder.set_entry_point("collect_input")
 
-    builder.add_edge("collect_input", "validate_input")
+    def collect_phase_router(state):
+        if state.get("abort_reason"):
+            return END
+        return "validate_input"
+
+    builder.add_conditional_edges("collect_input", collect_phase_router)
 
     def input_phase_router(state):
         if state.get("abort_reason"):
@@ -78,11 +104,12 @@ def build_graph(live: bool = False):
 
     builder.add_conditional_edges("validate_input", input_phase_router)
 
-    builder.add_edge("fetch_router", "fetch_arxiv")
-    builder.add_edge("fetch_router", "fetch_huggingface")
-
-    builder.add_edge("fetch_arxiv", "merge_source_units")
-    builder.add_edge("fetch_huggingface", "merge_source_units")
+    if "arxiv" in active_sources:
+        builder.add_edge("fetch_router", "fetch_arxiv")
+        builder.add_edge("fetch_arxiv", "merge_source_units")
+    if "huggingface" in active_sources:
+        builder.add_edge("fetch_router", "fetch_huggingface")
+        builder.add_edge("fetch_huggingface", "merge_source_units")
 
     # ✅ Gate tras merge (porque puede abortar)
     builder.add_conditional_edges("merge_source_units", abort_or("normalize"))

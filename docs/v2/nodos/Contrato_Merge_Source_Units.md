@@ -1,6 +1,6 @@
 1. Estado
 Version: v2
-Estado: DRAFT
+Estado: FROZEN
 Pertenece a: Contrato_Sistema_v2
 Gobernado por: Contrato_State_v2
 

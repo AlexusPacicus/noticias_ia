@@ -1,10 +1,27 @@
 from __future__ import annotations
 from typing import Dict, Any, List
+import logging
+from graph.v2.llm import generate_summary as llm_generate_summary
+
+logger = logging.getLogger(__name__)
 
 
-# Esta función será parcheada en tests
 def generate_summary(item: Dict[str, Any]) -> Dict[str, Any]:
-    raise NotImplementedError
+    """
+    Adapter kept as a module symbol so tests can monkeypatch this call site.
+    """
+    return llm_generate_summary(item)
+
+
+def _extract_summary_text(result: Dict[str, Any]) -> str:
+    if not isinstance(result, dict):
+        raise ValueError("Invalid summary payload type")
+
+    summary = result.get("summary")
+    if isinstance(summary, str) and summary.strip():
+        return summary.strip()
+
+    raise ValueError("Invalid summary value")
 
 
 def summarize_map(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -26,21 +43,47 @@ def summarize_map(state: Dict[str, Any]) -> Dict[str, Any]:
 
     selected_items: List[Dict[str, Any]] = state["selected_items"]
 
-    summary_items: List[Dict[str, Any]] = []
+    summary_items = []
     ok = 0
     failed = 0
 
     for item in selected_items:
         try:
-            summary = generate_summary(item)
+            llm_input = {
+                "title": item["title"],
+                # Selected items come from ranked_items (field: content).
+                "abstract": item.get("abstract") or item.get("content", ""),
+                "link": item["link"],
+                "source": item["source"],
+            }
+            result = generate_summary(llm_input)
+            if isinstance(result, dict) and result.get("mode") in {"fallback_text", "fallback_json_recovery"}:
+                logger.info(
+                    "Using %s summary for rank_position=%s",
+                    result.get("mode"),
+                    item.get("rank_position"),
+                )
+            summary_text = _extract_summary_text(result)
 
-            # Hard structural validation mínima
-            assert summary["rank_position"] == item["rank_position"]
+            summary_items.append({
+                "rank_position": item["rank_position"],
+                "title": item["title"],
+                "link": item["link"],
+                "source": item["source"],
+                "summary": summary_text
+            })
 
-            summary_items.append(summary)
             ok += 1
 
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "summary generation failed for rank_position=%s source=%s title=%r: %s",
+                item.get("rank_position"),
+                item.get("source"),
+                (item.get("title") or "")[:120],
+                exc,
+                exc_info=True,
+            )
             failed += 1
 
     summary_stats = {
@@ -54,5 +97,8 @@ def summarize_map(state: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "summary_items": summary_items,
-        "summary_stats": summary_stats,
+        "summary_stats": {
+            "ok": ok,
+            "failed": failed
+        }
     }

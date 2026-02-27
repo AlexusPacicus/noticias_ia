@@ -3,14 +3,14 @@
 ## 0. Estado del documento
 
 - Version: v2
-- Estado: DRAFT
+- Estado: FROZEN
 - Alcance: Arquitectura, modelo de datos, politicas y decisiones congeladas
 
 ---
 
 ## 1. Alcance
 
-v2 es un motor multi-fuente determinista para descubrimiento y resument de papers tecnicos.
+v2 es un motor multi-fuente determinista para descubrimiento y resumen de papers tecnicos.
 
 ### 1.1 Capacidades incluidas
 
@@ -373,7 +373,7 @@ Ejecucion secuencial (no paralela) sobre cada `selected_item`.
 
 Subgrafo por item:
 
-1. `summarize_one`: invoca LLM para generar campos del summary.
+1. `summarize_one`: invoca LLM para generar el campo `summary`.
 2. `validate_summary_schema`: valida limites y formato por item.
 
 Si un item falla (error de LLM o violacion de schema):
@@ -411,8 +411,7 @@ Si un item falla (error de LLM o violacion de schema):
   "results": [
     {
       "title": "string",
-      "idea_clave": "string",
-      "relacion_con_query": "string",
+      "summary": "string",
       "link": "string",
       "source": "string",
       "rank_position": "int"
@@ -452,13 +451,14 @@ Lista cerrada de claves permitidas. No se admiten claves fuera de esta lista.
 |------------------------|----------------------------------------------------------|
 | `input_raw`            | Input crudo del usuario                                  |
 | `input_validated`      | Input validado con defaults aplicados                    |
-| `source_units`         | Unidades crudas por fuente (`SourceUnit[]` por fuente)   |
+| `source_units`         | Unidades crudas por fuente (`status`, `error`, `items` por fuente) |
 | `merged_source_units`  | Unidades concatenadas y ordenadas deterministamente      |
 | `normalized_items`     | Items normalizados con schema comun                      |
 | `filtered_items`       | Items tras filtro temporal                               |
 | `deduped_items`        | Items tras deduplicacion por `canonical_id`              |
 | `ranked_items`         | Items ordenados por BM25 con `rank_position`             |
 | `selected_items`       | Items seleccionados (top_k)                              |
+| `summary_items`        | Summaries validos con trazabilidad (`rank_position`, `title`, `summary`, `link`, `source`) |
 | `summary_stats`        | Contadores de summarize: `ok` y `failed`                 |
 | `output`               | Output publico final                                     |
 | `abort_reason`         | Codigo de abort (si aplica)                              |
@@ -481,6 +481,7 @@ Lista cerrada de claves permitidas. No se admiten claves fuera de esta lista.
 | `INVALID_TIME_WINDOW`           | `validate_input`        | Ventana temporal no reconocida                  |
 | `INVALID_TOP_K`                 | `validate_input`        | top_k fuera de rango [1..5]                     |
 | `FETCH_ALL_SOURCES_FAILED`      | `merge_source_units`    | Todas las fuentes fallaron                      |
+| `UNKNOWN_SOURCE_PRIORITY`       | `merge_source_units`    | `source_units` contiene clave no incluida en `SOURCE_PRIORITY` |
 | `NO_ITEMS_IN_TIME_WINDOW`       | `filter_by_time_window` | Sin items tras filtro temporal                  |
 | `RANK_QUERY_EMPTY_AFTER_NORMALIZATION` | `rank_bm25`     | Query vacia tras preprocessing                  |
 | `SELECT_MISSING_RANKED_ITEMS`   | `select`                | `ranked_items` ausente o invalido               |
@@ -505,6 +506,6 @@ Lista cerrada de claves permitidas. No se admiten claves fuera de esta lista.
 
 | Version | Estado  | Runtime                      | Ubicacion                        |
 |---------|---------|------------------------------|----------------------------------|
-| v2      | DRAFT   | LangGraph (`graph.invoke()`) | Branch de desarrollo             |
+| v2      | FROZEN  | LangGraph (`graph.invoke()`) | Branch de desarrollo             |
 | v1.1    | FROZEN  | LangGraph (`graph.invoke()`) | Tag `v1.1.0`, branch `v1.1`     |
 | v1      | FROZEN  | Loop manual                  | Tag `v1.0.0`, branch `codex/legacy-v1` |

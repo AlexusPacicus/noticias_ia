@@ -74,14 +74,7 @@ def test_full_pipeline_happy_path(monkeypatch):
     app = build_graph()
 
     def fake_generate(item):
-        return {
-            "rank_position": item["rank_position"],
-            "title": item["title"],
-            "idea_clave": "x",
-            "relacion_con_query": "y",
-            "link": item["link"],
-            "source": item["source"],
-        }
+        return {"summary": "x"}
 
     monkeypatch.setattr(
         "graph.v2.nodes.summarize_map.generate_summary",

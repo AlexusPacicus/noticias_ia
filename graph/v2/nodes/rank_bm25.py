@@ -64,7 +64,7 @@ def rank_bm25(state: dict) -> dict:
         new_item["bm25_score"] = score
         ranked.append(new_item)
 
-    ranked.sort(key=lambda x: (-x["bm25_score"], x["canonical_id"]))
+    ranked.sort(key=lambda x: (-x["bm25_score"], x["title"], x["link"]))
 
     for i, item in enumerate(ranked, start=1):
         item["rank_position"] = i

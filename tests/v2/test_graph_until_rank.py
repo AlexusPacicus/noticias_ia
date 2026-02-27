@@ -41,7 +41,16 @@ def fake_fetch_huggingface(state):
 def _patch_summarize_ok(monkeypatch):
     def summarize_ok(state):
         selected = state.get("selected_items", []) or []
-        summary_items = list(selected)
+        summary_items = [
+            {
+                "rank_position": item["rank_position"],
+                "title": item["title"],
+                "summary": "ok",
+                "link": item["link"],
+                "source": item["source"],
+            }
+            for item in selected
+        ]
         ok = len(summary_items)
         failed = 0
 

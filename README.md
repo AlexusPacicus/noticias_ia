@@ -1,138 +1,108 @@
-# noticias — v1.1
+# noticias v2 (FROZEN)
 
-Busca papers recientes de IA en arXiv, los rankea por relevancia contra tu query y genera resumenes cortos con un LLM local.
+Pipeline multi-fuente para descubrimiento y resumen tecnico de papers, con contratos de sistema/state/nodos y comportamiento determinista hasta ranking.
 
----
+## Que hace
 
-## Como funciona
+1. Valida input (`query`, `time_window`, `top_k`).
+2. Hace fetch desde arXiv y HuggingFace Papers.
+3. Normaliza, filtra por ventana temporal, deduplica y rankea con BM25.
+4. Selecciona `top_k`.
+5. Resume cada item con LLM local (Ollama) bajo schema estricto JSON.
 
-Le das una query (ej. `"large language models"`), una ventana temporal y cuantos resultados quieres. El sistema:
+## Pipeline v2
 
-1. Busca en arXiv `cs.AI` dentro de esa ventana.
-2. Rankea los papers por coincidencia lexica con tu query (determinista, sin ML).
-3. Selecciona los top-k.
-4. Genera un resumen breve de cada uno con `gemma3:4b` via Ollama.
-
-El ranking y la seleccion son siempre los mismos para el mismo input. Lo unico que varia entre ejecuciones es la redaccion de los resumenes.
-
----
-
-## Pipeline
-
-```
-collect_input -> validate_input -> fetch -> normalize -> rank -> select -> summarize
+```text
+collect_input -> validate_input -> fetch_router -> fetch_* -> merge_source_units
+-> normalize -> filter_by_time_window -> dedupe -> rank_bm25 -> select
+-> summarize_map -> summarize_reduce
 ```
 
-| Paso             | Que hace                                                      |
-|------------------|---------------------------------------------------------------|
-| `collect_input`  | Recoge lo que el usuario paso.                                |
-| `validate_input` | Verifica formato y aplica defaults.                           |
-| `fetch`          | Trae papers de arXiv filtrados por fecha.                     |
-| `normalize`      | Extrae `title`, `link` y `content` de cada paper.            |
-| `rank`           | Ordena por coincidencia de palabras con la query.             |
-| `select`         | Se queda con los primeros `top_k`.                            |
-| `summarize`      | Pide al LLM un resumen breve de cada paper seleccionado.      |
+## Input publico
 
-Si algo falla en cualquier paso, el pipeline se detiene y devuelve el motivo del error. No hay resultados parciales.
+- `query`: string no vacio
+- `time_window`: `last_24h | last_3_days | last_7_days`
+- `top_k`: int opcional en `[1..5]` (default `3`)
 
-El runtime es LangGraph: todo se ejecuta via `graph.invoke(input)`.
-
----
-
-## Entrada y salida
-
-**Entrada:**
-
-| Campo         | Tipo   | Notas                                         |
-|---------------|--------|-----------------------------------------------|
-| `query`       | string | Min. 2 palabras. Sin `AND`/`OR`/`NOT`.        |
-| `time_window` | string | `last_24h`, `last_3_days` o `last_7_days`.    |
-| `top_k`       | int    | Opcional. Entre 1 y 10, default 5.            |
-
-**Salida (exito):**
+## Output publico (exito)
 
 ```json
 {
-  "output": {
-    "topic": "large language models",
-    "time_window": "last_7_days",
-    "results": [
-      {
-        "title": "Nombre del paper",
-        "idea_clave": "De que trata (max 80 palabras)",
-        "relacion_con_query": "Por que es relevante (max 30 palabras)",
-        "link": "http://arxiv.org/abs/..."
-      }
-    ]
-  }
+  "topic": "agentic ai",
+  "time_window": "last_7_days",
+  "requested_k": 2,
+  "returned_k": 2,
+  "failed_summaries": 0,
+  "results": [
+    {
+      "rank_position": 1,
+      "title": "Paper title",
+      "link": "https://...",
+      "source": "arxiv",
+      "summary": "Technical summary..."
+    }
+  ]
 }
 ```
 
-**Salida (error):**
+En ejecucion abortada, la salida contiene:
 
 ```json
-{
-  "abort_reason": "INVALID_QUERY"
-}
+{"abort_reason":"..."}
 ```
-
-Todos los codigos de error estan listados en `docs/v1.1/Contrato_Sistema_v1.1.md`.
-
----
 
 ## Ejecutar
 
-Necesitas Python 3.11+ y [Ollama](https://ollama.com/) con el modelo `gemma3:4b` descargado.
+Requisitos:
+
+- Python 3.11+
+- Ollama local
+- modelo `llama3:8b` descargado
+
+Instalacion:
 
 ```bash
 pip install -r requirements.txt
-python run_pipeline.py
 ```
 
----
+Runner principal:
+
+```bash
+python run_pipeline_v2.py
+```
+
+Flags utiles:
+
+```bash
+# modo determinista de pruebas (sin fetch real)
+python run_pipeline_v2.py --stub --debug
+
+# modo live real (default)
+python run_pipeline_v2.py --live --query "agentic ai" --time-window last_7_days --top-k 2
+
+# aislar fuente
+python run_pipeline_v2.py --source arxiv
+python run_pipeline_v2.py --source huggingface
+python run_pipeline_v2.py --source both
+```
 
 ## Tests
 
 ```bash
-# Unitarios (sin red, sin LLM)
-pytest -q -m "not integration and not e2e"
-
-# Integracion (necesita arXiv)
-pytest -q -m integration
-
-# End-to-end (necesita arXiv + Ollama)
-pytest -q -m e2e
+pytest -q
 ```
 
-30 tests unitarios.
+Suite actual: `79 passed`.
 
----
+## Documentacion contractual
 
-## Limitaciones conocidas
+- [Contrato de Sistema v2](docs/v2/Contrato_Sistema_v2.md)
+- [Contrato de State v2](docs/v2/Contrato_State_v2.md)
+- [Diseno v2](docs/v2/Diseno_v2.md)
+- [Contratos de nodos v2](docs/v2/nodos/)
 
-El modelo `gemma3:4b` es pequeno y no siempre respeta los limites de palabras del schema. Cuantos mas papers procesa (top_k alto), mas probable es que alguno falle validacion. En pruebas con `top_k=3` la tasa de fallo rondo el 75%.
+## Notas para demos
 
-Cuando esto pasa, el pipeline detecta la violacion y aborta limpiamente. No es un bug del sistema sino una limitacion del modelo. Un modelo mas grande o un limite de tokens mas generoso lo resolveria sin tocar el pipeline.
-
----
-
-## Versiones
-
-| Version | Estado | Que usa                      | Donde esta                             |
-|---------|--------|------------------------------|----------------------------------------|
-| v1.1    | FROZEN | LangGraph (`graph.invoke()`) | Tag `v1.1.0`, branch `v1.1`           |
-| v1      | FROZEN | Loop manual                  | Tag `v1.0.0`, branch `codex/legacy-v1` |
-
-This branch exclusively maintains v2 architecture. v1 is available in historical tag.
-
----
-
-## Documentacion
-
-Contratos y especificaciones detalladas:
-
-- [`Contrato_Sistema_v1.1.md`](docs/v1.1/Contrato_Sistema_v1.1.md)
-- [`Contrato_Runtime_v1.1.md`](docs/v1.1/Contrato_Runtime_v1.1.md)
-- [`Contrato_State_v1.1.md`](docs/v1.1/Contrato_State_v1.1.md)
-- [`CHANGELOG_v1.1.md`](CHANGELOG_v1.1.md) — que cambio de v1 a v1.1.
-- [`docs/legacy/v1/`](docs/legacy/v1/) — documentacion historica de v1.
+- El determinismo estructural aplica hasta ranking.
+- `summarize_map` tolera fallos parciales por item.
+- Solo aborta en summary cuando todos los items fallan (`SUMMARY_ALL_ITEMS_FAILED`).

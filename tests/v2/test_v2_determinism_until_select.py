@@ -10,7 +10,16 @@ def _patch_passthrough_time(gmod, monkeypatch):
 def _patch_summarize_ok(gmod, monkeypatch):
     def summarize_ok(state):
         selected = state.get("selected_items", []) or []
-        summary_items = list(selected)
+        summary_items = [
+            {
+                "rank_position": item["rank_position"],
+                "title": item["title"],
+                "summary": "ok",
+                "link": item["link"],
+                "source": item["source"],
+            }
+            for item in selected
+        ]
         ok = len(summary_items)
         failed = 0
 

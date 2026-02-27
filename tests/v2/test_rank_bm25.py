@@ -96,6 +96,40 @@ def test_rank_tie_break_by_title_and_link():
     assert ranked[0]["title"] == "A Paper"
     assert ranked[1]["title"] == "B Paper"
 
+
+def test_rank_tie_break_by_link_when_title_is_equal():
+    state = {
+        "input_validated": {
+            "query": "robotics",
+            "time_window": "last_7_days",
+            "top_k": 3,
+        },
+        "deduped_items": [
+            {
+                "title": "Same Title",
+                "content": "robotics",
+                "published_at": "2025-01-01T00:00:00Z",
+                "link": "https://a.com/z",
+                "source": "arxiv",
+                "canonical_id": "id1",
+            },
+            {
+                "title": "Same Title",
+                "content": "robotics",
+                "published_at": "2025-01-01T00:00:00Z",
+                "link": "https://a.com/a",
+                "source": "arxiv",
+                "canonical_id": "id2",
+            },
+        ],
+    }
+
+    delta = rank_bm25(state)
+    ranked = delta["ranked_items"]
+
+    assert ranked[0]["link"] == "https://a.com/a"
+    assert ranked[1]["link"] == "https://a.com/z"
+
 def test_rank_abort_if_query_empty_after_preprocessing():
     state = _base_state()
     state["input_validated"]["query"] = "the and of"
@@ -113,4 +147,3 @@ def test_rank_does_not_mutate_input():
     _ = rank_bm25(state)
 
     assert state["deduped_items"] == original
-
