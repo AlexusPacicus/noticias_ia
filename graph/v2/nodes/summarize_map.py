@@ -3,6 +3,8 @@ from typing import Dict, Any, List
 import logging
 from graph.v2.llm import generate_summary as llm_generate_summary
 
+# Nodo summarize_map - Responsabilidad: resumir secuencialmente selected_items y acumular summary_stats.
+
 logger = logging.getLogger(__name__)
 
 

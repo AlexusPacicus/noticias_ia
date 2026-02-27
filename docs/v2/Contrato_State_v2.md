@@ -2,7 +2,7 @@
 
 ## 1. Estado
 
-- Version: v2
+- Versión: v2
 - Estado: FROZEN
 - Complementa:
   - Contrato de Sistema v2 → `Contrato_Sistema_v2`

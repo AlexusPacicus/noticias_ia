@@ -1,16 +1,25 @@
-.venv/
-venv/
+# Python
 __pycache__/
 *.pyc
-.DS_Store
-.env
-*.egg-info/
+*.pyo
+*.pyd
+
+# Virtualenv
+.venv/
+
+# Pytest
 .pytest_cache/
-lecciones.md
-run.py
-tests/prueba_normalize_schema.py
-.langgraph_api/
-results.json
-run_v11_test_battery.py__pycache__/
-*.pyc
+
+# Ruff / mypy
+.mypy_cache/
+.ruff_cache/
+
+# Mac
+.DS_Store
+
+# Local runs
+run_*.json
+
+# Test artifacts
+tests/artifacts/
 artifacts/

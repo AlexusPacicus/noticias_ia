@@ -1,8 +1,8 @@
-# Documento de Diseno — v2
+# Documento de Diseño — v2
 
 ## 0. Estado del documento
 
-- Version: v2
+- Versión: v2
 - Estado: FROZEN
 - Alcance: Arquitectura, modelo de datos, politicas y decisiones congeladas
 

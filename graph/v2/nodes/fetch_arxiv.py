@@ -4,6 +4,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
 
+# Nodo fetch_arxiv - Responsabilidad: obtener SourceUnits de arXiv (stub/live).
+
 ARXIV_API_URL = "https://export.arxiv.org/api/query"
 HTTP_TIMEOUT_SECONDS = 15
 MAX_RESULTS = 25

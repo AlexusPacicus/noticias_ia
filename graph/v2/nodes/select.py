@@ -4,6 +4,8 @@ from typing import Any, Dict
 
 from graph.v2.state import V2State
 
+# Nodo select - Responsabilidad: seleccionar prefijo top_k de ranked_items.
+
 
 def select(state: V2State) -> Dict[str, Any]:
     ranked_items = state.get("ranked_items")

@@ -1,5 +1,7 @@
 from typing import Dict, Any, List
 
+# Nodo merge_source_units - Responsabilidad: consolidar y ordenar SourceUnits, y evaluar gate global de fetch.
+
 SOURCE_PRIORITY = ["arxiv", "huggingface"]
 
 

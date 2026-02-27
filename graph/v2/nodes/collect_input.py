@@ -1,6 +1,7 @@
 from typing import Dict
 from graph.v2.state import V2State
 
+# Nodo collect_input - Responsabilidad: capturar input bruto y gatear payload vacío.
 
 def collect_input(state: V2State) -> Dict:
     input_raw = {

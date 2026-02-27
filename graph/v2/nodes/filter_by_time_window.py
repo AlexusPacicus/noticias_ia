@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional
 
 from graph.v2.state import V2State
 
+# Nodo filter_by_time_window - Responsabilidad: filtrar por ventana temporal y gatear lista vacía.
+
 
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)

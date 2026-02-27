@@ -1,3 +1,5 @@
+# Nodo dedupe - Responsabilidad: deduplicar por canonical_id preservando primer ocurrencia.
+
 def dedupe(state: dict) -> dict:
     items = state.get("filtered_items")
 

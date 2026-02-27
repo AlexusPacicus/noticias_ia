@@ -1,4 +1,4 @@
-langchain-ollama>=1.0.1
-langchain-core>=1.2.7
-langgraph>=1.0.7
-pytest>=9.0.2
+langchain-ollama==1.0.1
+langchain-core==1.2.7
+langgraph==1.0.7
+pytest==9.0.2

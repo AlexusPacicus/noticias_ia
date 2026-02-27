@@ -2,6 +2,8 @@ import math
 import re
 from collections import Counter
 
+# Nodo rank_bm25 - Responsabilidad: rankear items deduplicados con BM25 y asignar rank_position.
+
 
 STOPWORDS = {
     "the", "and", "of", "in", "on", "for", "to", "a", "an"

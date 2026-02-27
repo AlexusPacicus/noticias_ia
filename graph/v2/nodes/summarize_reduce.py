@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import Dict, Any, List
 
+# Nodo summarize_reduce - Responsabilidad: aplicar gate final de summarize y construir output público.
+
 _SUMMARY_ITEM_KEYS = {"rank_position", "title", "summary", "link", "source"}
 
 

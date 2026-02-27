@@ -1,6 +1,6 @@
 # Runtime v2
 
-## 1. Scope
+## 1. Alcance
 
 Este documento describe cómo ejecutar v2 y cuál es el perfil operativo validado.
 No define reglas contractuales (ver Contrato_Sistema_v2, Contrato_State_v2 y Contrato_LLM_v2).
@@ -20,13 +20,13 @@ result = graph.invoke({
     "time_window": "last_7_days",
     "top_k": 2
 })
+```
 
 graph.invoke() devuelve el state completo del pipeline.
 El output público contractual se encuentra en la clave output.
 
-
-3. Configuración LLM (FROZEN)
-Ver: Contrato_LLM_v2.md
+## 3. Configuración LLM (FROZEN)
+Ver: `Contrato_LLM_v2.md`
 Configuración congelada por Gate 4 (v2):
 Provider: Ollama local
 Endpoint: http://127.0.0.1:11434/api/generate
@@ -37,6 +37,7 @@ TIMEOUT_SECONDS = 60
 MAX_RETRIES = 1
 Ejecución secuencial vía summarize_map
 Cualquier modificación requiere nueva formalización contractual.
+
 ## 4. Perfil operativo validado (entorno CPU local)
 
 En el entorno validado (Ollama CPU local):

@@ -4,6 +4,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
 
+# Nodo fetch_huggingface - Responsabilidad: obtener SourceUnits de HuggingFace Papers (stub/live).
+
 HF_DAILY_PAPERS_API_URL = "https://huggingface.co/api/daily_papers"
 HTTP_TIMEOUT_SECONDS = 15
 MAX_RESULTS = 25

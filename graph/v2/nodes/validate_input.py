@@ -1,6 +1,8 @@
 from typing import Dict
 from graph.v2.state import V2State
 
+# Nodo validate_input - Responsabilidad: validar query/time_window/top_k y aplicar defaults.
+
 VALID_TIME_WINDOWS = {"last_24h", "last_3_days", "last_7_days"}
 
 

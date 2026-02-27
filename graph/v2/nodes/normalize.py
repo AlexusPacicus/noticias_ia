@@ -8,6 +8,8 @@ from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
 from graph.v2.state import V2State
 
+# Nodo normalize - Responsabilidad: normalizar SourceUnits a schema común y generar canonical_id.
+
 
 _ARXIV_ID_RE = re.compile(r"(\d{4}\.\d{4,5})(v\d+)?", re.IGNORECASE)
 

@@ -2,7 +2,7 @@
 
 ## 1. Estado
 
-- Version: v2
+- Versión: v2
 - Estado: FROZEN
 - Runtime oficial: grafo compilado ejecutado exclusivamente vía `graph.invoke(input)`
 - Sustituye semánticamente la capa de sistema de v1.1.
