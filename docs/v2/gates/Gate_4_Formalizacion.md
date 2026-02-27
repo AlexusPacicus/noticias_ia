@@ -17,8 +17,8 @@ Se validaron dos frentes:
 
 Evidencia:
 
-1. `tests/v2/test_gate3_real_llm_stress.py`
-2. `tests/v2/test_gate3_llm_stress.py`
+1. `tests/stress/test_gate3_real_llm_stress.py`
+2. `tests/stress/test_gate3_llm_stress.py`
 3. `tests/artifacts/gate3_real_llm_report.json`
 4. `tests/artifacts/gate3_llm_stress_report.json`
 
@@ -85,8 +85,8 @@ Entorno operativo aceptado para este freeze: Ollama 8B en CPU.
 
 1. Configuracion LLM actual: `graph/v2/llm.py:7-12`
 2. Modo secuencial de resumen: `graph/v2/nodes/summarize_map.py:50-60`
-3. Metricas y umbrales Gate 3 real: `tests/v2/test_gate3_real_llm_stress.py:205-258`
-4. Metricas y umbrales Gate 3 sintetico: `tests/v2/test_gate3_llm_stress.py:210-251`
+3. Metricas y umbrales Gate 3 real: `tests/stress/test_gate3_real_llm_stress.py:205-258`
+4. Metricas y umbrales Gate 3 sintetico: `tests/stress/test_gate3_llm_stress.py:210-251`
 5. Latencias reales observadas: `tests/artifacts/gate3_real_llm_report.json:8-22`
 6. Conteos sinteticos observados: `tests/artifacts/gate3_llm_stress_report.json:3-18`
 7. Configuracion contractual LLM congelada: `docs/v2/nodos/Contrato_LLM_v2.md:10-19`

@@ -1,8 +1,11 @@
 import pytest
+from datetime import datetime, timedelta, timezone
 from graph.v2.graph import build_graph
 
 
 def fake_fetch_arxiv(state):
+    now = datetime.now(timezone.utc)
+    recent = (now - timedelta(days=1)).isoformat()
     return {
         "source_units": {
             "arxiv": {
@@ -16,7 +19,7 @@ def fake_fetch_arxiv(state):
                         "payload": {
                             "title": "Reinforcement Learning Paper",
                             "abstract": "reinforcement learning methods",
-                            "published_at": "2026-02-19T12:00:00Z",
+                            "published_at": recent,
                             "link": "https://arxiv.org/abs/2401.12345v2",
                         },
                     }
