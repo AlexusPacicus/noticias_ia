@@ -54,7 +54,8 @@ def test_excludes_old_item(monkeypatch):
     }
 
     out = filter_by_time_window(state)
-    assert out["abort_reason"] == "NO_ITEMS_IN_TIME_WINDOW"   
+    assert out["abort_reason"] == "NO_ITEMS_IN_TIME_WINDOW"
+    assert out["filtered_items"] == []
 
 def test_preserves_order(monkeypatch):
     fixed_now = datetime(2025, 1, 10, tzinfo=timezone.utc)
@@ -118,3 +119,4 @@ def test_invalid_date_discarded(monkeypatch):
 
     out = filter_by_time_window(state)
     assert out["abort_reason"] == "NO_ITEMS_IN_TIME_WINDOW"
+    assert out["filtered_items"] == []

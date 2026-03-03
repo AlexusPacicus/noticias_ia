@@ -24,7 +24,7 @@ def test_dedupe_abort_when_empty():
     result = dedupe(state)
 
     assert result["abort_reason"] == "NO_ITEMS_AFTER_DEDUPE"
-    assert "deduped_items" not in result
+    assert result["deduped_items"] == []
 
 def test_dedupe_non_consecutive():
     state = {

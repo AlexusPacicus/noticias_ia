@@ -1,7 +1,7 @@
 # Nodo dedupe - Responsabilidad: deduplicar por canonical_id preservando primer ocurrencia.
 
 def dedupe(state: dict) -> dict:
-    items = state.get("filtered_items")
+    items = state.get("filtered_items") or []
 
     seen = set()
     deduped = []
@@ -13,6 +13,9 @@ def dedupe(state: dict) -> dict:
             deduped.append(item)
 
     if not deduped:
-        return {"abort_reason": "NO_ITEMS_AFTER_DEDUPE"}
+        return {
+            "deduped_items": [],
+            "abort_reason": "NO_ITEMS_AFTER_DEDUPE",
+        }
 
     return {"deduped_items": deduped}

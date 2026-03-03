@@ -53,22 +53,19 @@ def filter_by_time_window(state: V2State) -> Dict[str, Any]:
     tw = (state.get("input_validated", {}) or {}).get("time_window")
 
     delta = _WINDOW_TO_DELTA.get(tw)
-    # time_window should be validated earlier; if not, treat as no items (safe fail)
-    if delta is None:
-        return {"abort_reason": "NO_ITEMS_IN_TIME_WINDOW"}
-
     now_utc = _now_utc()
-    cutoff = now_utc - delta
+    cutoff = now_utc - delta if delta is not None else None
 
     filtered: List[Dict[str, Any]] = []
-    for it in items:
-        dt = _parse_iso_utc(it.get("published_at")) if isinstance(it, dict) else None
-        if dt is None:
-            continue
-        if dt >= cutoff:  # inclusive
-            filtered.append(it)
+    if delta is not None:
+        for it in items:
+            dt = _parse_iso_utc(it.get("published_at")) if isinstance(it, dict) else None
+            if dt is None:
+                continue
+            if dt >= cutoff:  # inclusive
+                filtered.append(it)
 
-    if len(filtered) == 0:
-        return {"abort_reason": "NO_ITEMS_IN_TIME_WINDOW"}
-
-    return {"filtered_items": filtered}
+    result: Dict[str, Any] = {"filtered_items": filtered}
+    if delta is None or len(filtered) == 0:
+        result["abort_reason"] = "NO_ITEMS_IN_TIME_WINDOW"
+    return result

@@ -17,10 +17,10 @@ Transformar `merged_source_units` en `normalized_items` con el schema común def
 
 Reglas:
 - MUST preservar el orden heredado de `merged_source_units`.
-- MUST generar `canonical_id` según Diseño v2 §6.
-- MUST descartar items defectuosos.
-- MUST retornar únicamente el delta.
-- MUST NOT modificar `merged_source_units`.
+- MUST generar `canonical_id` no vacío y determinista.
+- MUST descartar cualquier item cuyo canonical_id resulte vacío o None.
+- MUST descartar items sin published_at parseable.
+- MUST descartar items sin title no vacío.
 
 ## 5. Abort
 (none)
