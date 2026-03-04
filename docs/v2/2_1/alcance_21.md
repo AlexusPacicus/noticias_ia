@@ -4,6 +4,7 @@ Versión: v2.1
 Estado: DRAFT → objetivo FROZEN tras implementación
 Naturaleza: evolución estructural de v2
 Modelo de ejecución: pipeline síncrono (sin persistencia)
+
 2. Objetivo
 Modularizar el motor v2 en fases reutilizables e introducir un nodo HITL síncrono, manteniendo:
 Determinismo estructural hasta ranking
@@ -12,7 +13,9 @@ Abort dominante
 Contrato público intacto
 Configuración LLM congelada
 v2.1 NO cambia la naturaleza del sistema.
+
 3. Cambios estructurales incluidos
+
 3.1 RetrievalPhase (subgrafo compilable)
 Incluye:
 collect_input
@@ -37,30 +40,37 @@ summary_stats
 output
 Abort permitidos: A–E.
 No depende del LLM.
+
 3.2 Nodo HITL síncrono
 Nodo: hitl_review
 Comportamiento:
 ESC → aceptar selected_items
 Edit → devolver subset
 Cancel → USER_ABORT
-Salida:
-hitl_selected_items
-hitl_action
+Salida HITL:
+- hitl_action
+- hitl_remove_keys
+HITL no materializa una nueva lista de items.
+Opera sobre `selected_items` mediante eliminación declarativa (`hitl_remove_keys`).
+
 Restricciones:
 No loops
 No re-fetch
 No re-ranking
 No alteración del determinismo previo
+
 3.3 SummarizePhase (subgrafo compilable)
 Incluye:
 summarize_map
 → summarize_reduce
 Entrada:
-hitl_selected_items
+selected_items
+
 Abort permitido:
 SUMMARY_ALL_ITEMS_FAILED
 No conoce ranking interno.
 No modifica posiciones.
+
 3.4 RankingStrategy (estructura preparada)
 Introducción de interfaz:
 class RankingStrategy:
@@ -68,6 +78,7 @@ class RankingStrategy:
 Implementación activa:
 BM25Strategy
 No se activan estrategias múltiples en v2.1.
+
 3.5 execute_until
 Parámetro opcional:
 execute_until = "select" | "summary"
@@ -76,6 +87,7 @@ No se ejecuta HITL
 No se ejecuta Summarize
 No se crea output
 No modifica contrato público estándar.
+
 3.6 Observabilidad lateral (no contractual)
 Se introduce capa de ejecución externa con:
 execution_id
@@ -89,6 +101,7 @@ No forman parte del state
 No afectan decisiones
 No alteran determinismo
 No modifican contrato
+
 4. No-Goals explícitos
 v2.1 NO incluye:
 Persistencia
@@ -101,6 +114,7 @@ Separación de states
 Cambios en Contrato_Sistema_v2
 Cambios en Contrato_LLM_v2
 Estos cambios pertenecen a v3.
+
 5. Plan de implementación
 Paso 1 — Extraer RetrievalPhase
 Subgrafo funcional
@@ -117,6 +131,7 @@ Test "select"
 Test "summary"
 Paso 5 — Añadir observabilidad externa
 Confirmar que el state no cambia entre ejecuciones idénticas
+
 6. Tests mínimos obligatorios
 Determinismo Retrieval sin LLM
 Equivalencia v2 vs v2.1
@@ -124,6 +139,7 @@ Aborts A–E intactos
 Abort F intacto
 State idéntico sin métricas
 Summarize no ejecuta si abort previo
+
 7. Identidad de versiones
 v2 → pipeline monolítico determinista
 v2.1 → pipeline modular con HITL síncrono

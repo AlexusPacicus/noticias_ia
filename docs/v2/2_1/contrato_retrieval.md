@@ -1,13 +1,17 @@
 📄 Contrato_Retrieval_v2.1
 1. Estado
 Versión: v2.1
-Estado: FROZEN
+Estado: DRAFT
 Tipo: Contrato de Fase
 Fase: RetrievalPhase
+
+
 Dependencias:
-Contrato_Sistema_v2
-Contrato_State_v2
+Contrato_Sistema_v2.1
+Contrato_State_v2.1
 Este documento delimita la frontera de la fase Retrieval y no redefine reglas globales del sistema.
+
+
 2. Contexto
 RetrievalPhase es una unidad estructural reutilizable del motor AI Papers Engine.
 Su responsabilidad es:
@@ -26,7 +30,13 @@ collect_input
 → rank_bm25
 → select
 La fase termina estrictamente tras la ejecución de select.
+
 RetrievalPhase NO DEBE incluir nodos de HITL ni nodos de SummarizePhase.
+RetrievalPhase MUST NOT crear:
+hitl_action
+hitl_remove_keys
+hitl_selected_items
+
 4. Entradas
 RetrievalPhase acepta exclusivamente el siguiente objeto de entrada:
 {
@@ -57,14 +67,58 @@ En caso de abort:
 El state DEBE contener abort_reason
 NO DEBEN crearse claves posteriores al punto de fallo
 ranked_items y selected_items NO DEBEN existir si el abort ocurre antes de su generación
+RetrievalPhase puede emitir exclusivamente:
+
+EMPTY_INPUT_PAYLOAD
+INVALID_QUERY
+INVALID_TIME_WINDOW
+INVALID_TOP_K
+FETCH_ALL_SOURCES_FAILED
+UNKNOWN_SOURCE_PRIORITY
+NO_ITEMS_IN_TIME_WINDOW
+NO_ITEMS_AFTER_DEDUPE
+RANK_QUERY_EMPTY_AFTER_NORMALIZATION
+SELECT_MISSING_RANKED_ITEMS
+SELECT_TOPK_INVALID
+
+Reglas específicas por Gate:
+
+Gate A:
+No debe existir input_validated ni claves posteriores.
+
+Gate B:
+No debe existir merged_source_units ni claves posteriores.
+
+Gate C (filter):
+No debe existir deduped_items ni claves posteriores.
+
+Gate C (dedupe):
+No debe existir ranked_items ni claves posteriores.
+
+Gate D:
+ranked_items MUST NOT existir.
+
+Gate E:
+ranked_items MUST existir.
+selected_items MUST NOT existir.
+
 7. Invariantes
 RetrievalPhase DEBE cumplir las siguientes condiciones:
-Determinismo estructural total: dado el mismo input y el mismo snapshot de fuentes, ranked_items y selected_items DEBEN ser idénticos.
+
+Determinismo estructural total:
+RetrievalPhase MUST produce identical ranked_items and selected_items
+given:
+- mismo input
+- mismas respuestas de las fuentes externas (contenido y orden idénticos)
+- mismo SOURCE_PRIORITY
+- mismos parámetros BM25
+
 No uso de modelos LLM.
 La deduplicación DEBE realizarse exclusivamente por canonical_id.
 El ranking DEBE realizarse exclusivamente mediante la estrategia BM25 activa.
 No dependencia de fases posteriores.
 No modificación de claves ajenas a esta fase.
+
 8. Prohibiciones
 RetrievalPhase NO DEBE:
 Invocar modelos LLM.
@@ -85,9 +139,9 @@ RetrievalPhase DEBE poder compilarse y ejecutarse de forma independiente:
 retrieval_graph.invoke(...)
 El resultado DEBE ser idéntico al del sistema completo hasta el nodo select.
 11. Referencias
-Contrato_Sistema_v2
-Contrato_State_v2
-Contrato_LLM_v2
+Contrato_Sistema_v2.1
+Contrato_State_v2.1
+Contrato_LLM_v2.1
 Diseno_v2
 
 12. Equivalencia estructural con el sistema completo
@@ -120,7 +174,8 @@ RetrievalPhase MUST NOT crear:
 summary_items
 summary_stats
 output
-En caso de abort, aplican las reglas de existencia definidas en Contrato_State_v2.
+RetrievalPhase MUST NOT crear abort_reason en ejecución exitosa.
+En caso de abort, aplican las reglas de existencia definidas en Contrato_State_v2.1.
 14. Orden total congelado
 RetrievalPhase MUST respetar el orden total determinista definido en el sistema v2:
 (-bm25_score, title ASC, link ASC)
