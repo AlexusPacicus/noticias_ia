@@ -5,6 +5,27 @@ Estado: DRAFT → objetivo FROZEN tras implementación
 Naturaleza: evolución estructural de v2
 Modelo de ejecución: pipeline síncrono (sin persistencia)
 
+1.1 Estructura vigente
+Builders canónicos:
+- `graph/v2_1/graph_21.py`
+- `graph/v2_1/retrieval/graph_21.py`
+- `graph/v2_1/summarize/graph_21.py`
+- `graph/v2_1/hitl/graph_21.py`
+
+Compatibilidad:
+- `graph/v2/graph.py` mantiene la entrada pública legacy
+- `graph/v2_1/runtime.py` es wrapper puro de compatibilidad
+
+Ownership por capas:
+- `graph/v2_1/*/graph_21.py` = builders
+- `nodes/*` = ejecución pura
+- `runtime/*` = utilidades LLM/parser/tipos
+- `graph/v2/*` = legacy + compatibilidad
+
+Excepciones legacy conocidas:
+- `graph/v2/nodes/summarize_map.py`
+- `graph/v2/nodes/filter_by_time_window.py`
+
 2. Objetivo
 Modularizar el motor v2 en fases reutilizables e introducir un nodo HITL síncrono, manteniendo:
 Determinismo estructural hasta ranking

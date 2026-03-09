@@ -119,9 +119,85 @@ def test_parse_error(monkeypatch):
     reduce_state = _to_reduce_state(state, map_delta)
     reduce_delta = summarize_reduce(reduce_state)
 
-    assert reduce_state["summary_stats"]["ok"] == 0
-    assert reduce_state["summary_stats"]["failed"] == 1
-    assert reduce_delta["abort_reason"] == "SUMMARY_ALL_ITEMS_FAILED"
+    assert reduce_state["summary_stats"]["ok"] == 1
+    assert reduce_state["summary_stats"]["failed"] == 0
+    assert reduce_delta["output"]["results"][0]["summary"] == "not-json"
+
+
+def test_partial_parse_error_does_not_break_reduce(monkeypatch):
+    summarize_map_module = _load_summarize_map_module()
+    responses = iter(
+        [
+            '{"summary": "test summary"}',
+            "not-json",
+        ]
+    )
+
+    def fake_generate(self, **kwargs):
+        return next(responses)
+
+    monkeypatch.setattr(summarize_map_module.LLMClient, "generate", fake_generate)
+
+    state = _base_state(
+        [
+            {
+                "canonical_id": "a",
+                "rank_position": 1,
+                "title": "Paper A",
+                "abstract": "Abstract A",
+                "link": "https://a",
+                "source": "arxiv",
+            },
+            {
+                "canonical_id": "b",
+                "rank_position": 2,
+                "title": "Paper B",
+                "abstract": "Abstract B",
+                "link": "https://b",
+                "source": "arxiv",
+            },
+        ]
+    )
+
+    map_delta = summarize_map_module.summarize_map(state)
+    reduce_state = _to_reduce_state(state, map_delta)
+    reduce_delta = summarize_reduce(reduce_state)
+
+    assert reduce_state["summary_stats"]["ok"] == 2
+    assert reduce_state["summary_stats"]["failed"] == 0
+    assert "abort_reason" not in reduce_delta
+    assert len(reduce_delta["output"]["results"]) == 2
+    assert reduce_delta["output"]["results"][1]["summary"] == "not-json"
+
+
+def test_content_field_is_accepted_as_abstract_fallback(monkeypatch):
+    summarize_map_module = _load_summarize_map_module()
+
+    captured = {}
+
+    def fake_generate(self, **kwargs):
+        captured.update(kwargs)
+        return '{"summary": "test summary"}'
+
+    monkeypatch.setattr(summarize_map_module.LLMClient, "generate", fake_generate)
+
+    state = _base_state(
+        [
+            {
+                "canonical_id": "a",
+                "rank_position": 1,
+                "title": "Paper A",
+                "content": "Content A",
+                "link": "https://a",
+                "source": "arxiv",
+            }
+        ]
+    )
+
+    map_delta = summarize_map_module.summarize_map(state)
+
+    assert map_delta["summary_stats"] == {"ok": 1, "failed": 0}
+    assert captured["abstract"] == "Content A"
 
 
 def test_rank_order(monkeypatch):
@@ -162,8 +238,10 @@ def test_rank_order(monkeypatch):
     )
 
     map_delta = summarize_map_module.summarize_map(state)
+    map_ranks = [item["rank_position"] for item in map_delta["summary_items"]]
     reduce_state = _to_reduce_state(state, map_delta)
     reduce_delta = summarize_reduce(reduce_state)
 
+    assert map_ranks == [3, 1, 2]
     ranks = [item["rank_position"] for item in reduce_delta["output"]["results"]]
     assert ranks == [1, 2, 3]
