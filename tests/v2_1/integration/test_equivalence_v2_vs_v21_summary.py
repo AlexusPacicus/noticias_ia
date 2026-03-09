@@ -23,6 +23,12 @@ def _summarize_ok_from_selected(selected_items: list[dict[str, Any]]) -> dict[st
     }
 
 
+def _effective_selected_items(state: dict[str, Any]) -> list[dict[str, Any]]:
+    remove = set(state.get("hitl_remove_keys", []) or [])
+    selected = state.get("selected_items", []) or []
+    return [item for item in selected if item.get("canonical_id") not in remove]
+
+
 def test_equivalence_v2_full_vs_v21_execute_until_summary(
     monkeypatch,
     payload_valid,
@@ -58,9 +64,7 @@ def test_equivalence_v2_full_vs_v21_execute_until_summary(
         return _summarize_ok_from_selected(state.get("selected_items", []) or [])
 
     def summarize_ok_v21(state):
-        effective = state.get("hitl_selected_items")
-        if effective is None:
-            effective = state.get("selected_items", []) or []
+        effective = _effective_selected_items(state)
         return _summarize_ok_from_selected(effective)
 
     monkeypatch.setattr("graph.v2.graph.fetch_arxiv", fixed_fetch_arxiv)
@@ -85,10 +89,9 @@ def test_equivalence_v2_full_vs_v21_execute_until_summary(
     missing_v21 = set(state_v2.keys()) - set(state_v21.keys())
 
     assert missing_v21 == set()
-    assert extra_v21 == {"hitl_action", "hitl_remove_keys", "hitl_selected_items"}
+    assert extra_v21 == {"hitl_action", "hitl_remove_keys"}
     assert state_v21["hitl_action"] == "accept"
     assert state_v21["hitl_remove_keys"] == []
-    assert state_v21["hitl_selected_items"] == state_v21["selected_items"]
 
     for key in state_v2:
         assert state_v21[key] == state_v2[key]

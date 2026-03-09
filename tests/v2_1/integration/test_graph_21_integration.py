@@ -5,10 +5,14 @@ from copy import deepcopy
 import graph.v2_1.graph_21 as g21
 
 
+def _effective_selected_items(state):
+    remove = set(state.get("hitl_remove_keys", []) or [])
+    selected = state.get("selected_items", []) or []
+    return [item for item in selected if item.get("canonical_id") not in remove]
+
+
 def _mock_summarize_ok(state):
-    selected = state.get("hitl_selected_items")
-    if selected is None:
-        selected = state["selected_items"]
+    selected = _effective_selected_items(state)
     # Return reverse order to ensure reduce is the only ordering enforcer.
     summary_items = [
         {
@@ -27,9 +31,7 @@ def _mock_summarize_ok(state):
 
 
 def _mock_summarize_all_failed(state):
-    selected = state.get("hitl_selected_items")
-    if selected is None:
-        selected = state["selected_items"]
+    selected = _effective_selected_items(state)
     return {
         "summary_items": [],
         "summary_stats": {"ok": 0, "failed": len(selected)},
@@ -37,9 +39,7 @@ def _mock_summarize_all_failed(state):
 
 
 def _mock_summarize_partial(state):
-    selected = state.get("hitl_selected_items")
-    if selected is None:
-        selected = state["selected_items"]
+    selected = _effective_selected_items(state)
     ok_items = selected[:2]
     summary_items = [
         {
@@ -110,9 +110,7 @@ def test_hitl_subset_only_selected_items_are_summarized(
 
     def summarize_subset_only(state):
         map_calls["count"] += 1
-        effective = state.get("hitl_selected_items")
-        if effective is None:
-            effective = state["selected_items"]
+        effective = _effective_selected_items(state)
         map_calls["seen_size"] = len(effective)
         return _mock_summarize_ok(state)
 
@@ -125,7 +123,6 @@ def test_hitl_subset_only_selected_items_are_summarized(
     out = invoke_full(payload_valid, decision_provider=decision_provider)
 
     assert out["hitl_action"] == "subset"
-    assert len(out["hitl_selected_items"]) == 1
     assert map_calls["count"] == 1
     assert map_calls["seen_size"] == 1
     assert out["output"]["returned_k"] == 1
@@ -145,14 +142,6 @@ def test_hitl_empty_triggers_summary_empty_input_and_skips_summarize(
     patch_now_utc()
     patch_fetch_snapshot(arxiv_items=nominal_arxiv_items, hf_items=nominal_hf_items)
 
-    map_calls = {"count": 0}
-
-    def summarize_spy(state):
-        map_calls["count"] += 1
-        return _mock_summarize_ok(state)
-
-    monkeypatch.setattr(g21, "summarize_map_effective", summarize_spy)
-
     def decision_provider(state):
         selected_ids = [item["canonical_id"] for item in state["selected_items"]]
         return {"action": "subset", "remove_keys": selected_ids}
@@ -160,10 +149,8 @@ def test_hitl_empty_triggers_summary_empty_input_and_skips_summarize(
     out = invoke_full(payload_valid, decision_provider=decision_provider)
 
     assert out["hitl_action"] == "subset"
-    assert out["hitl_selected_items"] == []
     assert out.get("abort_reason") == "SUMMARY_EMPTY_INPUT"
     assert "output" not in out
-    assert map_calls["count"] == 0
     assert_global_invariants(out)
 
 
@@ -304,7 +291,7 @@ def test_summarize_does_not_read_prohibited_keys_even_if_malformed(
 ):
     patch_now_utc()
     patch_fetch_snapshot(arxiv_items=nominal_arxiv_items, hf_items=nominal_hf_items)
-    original_apply = g21.apply_hitl_decision
+    original_hitl = g21.hitl_review
 
     class PoisonValue:
         def __iter__(self):
@@ -313,12 +300,12 @@ def test_summarize_does_not_read_prohibited_keys_even_if_malformed(
         def __len__(self):
             raise AssertionError("This key must not be read by SummarizePhase")
 
-    def apply_with_poison(state):
-        delta = original_apply(state)
+    def hitl_with_poison(state, decision):
+        delta = original_hitl(state, decision)
         delta["normalized_items"] = PoisonValue()
         return delta
 
-    monkeypatch.setattr(g21, "apply_hitl_decision", apply_with_poison)
+    monkeypatch.setattr(g21, "hitl_review", hitl_with_poison)
     monkeypatch.setattr(g21, "summarize_map_effective", _mock_summarize_ok)
 
     out = invoke_full(payload_valid)

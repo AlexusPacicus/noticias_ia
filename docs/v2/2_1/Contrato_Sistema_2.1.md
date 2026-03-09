@@ -55,10 +55,11 @@ collect_input
 → summarize_map
 → summarize_reduce
 Reglas:
-el orden MUST NOT cambiar
-no se permiten nodos adicionales
-no se permiten loops
-no se permiten ramas dinámicas
+- el orden NO DEBE cambiar
+- no se permiten nodos adicionales
+- no se permiten loops
+- no se permiten ramas dinámicas
+
 4. Fases del sistema
 El pipeline se divide en tres fases contractuales.
 4.1 Retrieval

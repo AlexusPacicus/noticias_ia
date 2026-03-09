@@ -3,7 +3,7 @@
 ## 1. Estado
 
 Versión: v2.1  
-Estado: DRAFT  
+Estado: FROZEN  
 Tipo: Contrato de Fase  
 Fase: SummarizePhase  
 

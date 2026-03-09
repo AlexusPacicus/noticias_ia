@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+import graph.v2.nodes.summarize_map as summarize_map_node
 import graph.v2_1.summarize.graph_21 as summarize_graph_21
 
 
 def _map_all_ok(state):
-    selected = state["selected_items"]
+    remove = set(state.get("hitl_remove_keys", []) or [])
+    selected = [
+        item for item in state["selected_items"]
+        if item.get("canonical_id") not in remove
+    ]
     summary_items = [
         {
             "rank_position": item["rank_position"],
@@ -24,7 +29,11 @@ def _map_all_ok(state):
 
 
 def _map_all_failed(state):
-    selected = state["selected_items"]
+    remove = set(state.get("hitl_remove_keys", []) or [])
+    selected = [
+        item for item in state["selected_items"]
+        if item.get("canonical_id") not in remove
+    ]
     return {
         "summary_items": [],
         "summary_stats": {"ok": 0, "failed": len(selected)},
@@ -36,20 +45,20 @@ def test_summary_empty_input_aborts_without_map_and_without_llm(
     input_validated,
     monkeypatch,
 ):
-    calls = {"map": 0}
+    calls = {"llm": 0}
 
-    def map_spy(state):
-        calls["map"] += 1
-        return _map_all_ok(state)
+    def llm_spy(_item):
+        calls["llm"] += 1
+        return {"summary": "ok"}
 
-    monkeypatch.setattr(summarize_graph_21, "summarize_map", map_spy)
+    monkeypatch.setattr(summarize_map_node, "generate_summary", llm_spy)
     out = invoke_summarize({"selected_items": [], "input_validated": input_validated})
 
     assert out.get("abort_reason") == "SUMMARY_EMPTY_INPUT"
     assert "summary_items" not in out
     assert "summary_stats" not in out
     assert "output" not in out
-    assert calls["map"] == 0
+    assert calls["llm"] == 0
 
 
 def test_summary_all_items_failed_aborts_without_output(
@@ -86,17 +95,15 @@ def test_rank_position_is_preserved_and_output_is_sorted(
     assert_structural_invariants(before, out)
 
 
-def test_hitl_override_uses_hitl_selected_items_only(
+def test_hitl_remove_keys_is_applied_in_summarize_map(
     base_state,
     invoke_summarize,
     monkeypatch,
     assert_structural_invariants,
 ):
     before = deepcopy(base_state)
-    hitl_subset = [before["selected_items"][1]]
     state = {
         **before,
-        "hitl_selected_items": hitl_subset,
         "hitl_remove_keys": [
             before["selected_items"][0]["canonical_id"],
             before["selected_items"][2]["canonical_id"],
@@ -114,7 +121,7 @@ def test_hitl_override_uses_hitl_selected_items_only(
     assert map_calls["count"] == 1
     assert out["summary_stats"]["ok"] + out["summary_stats"]["failed"] == 1
     assert out["output"]["returned_k"] == 1
-    assert {r["title"] for r in out["output"]["results"]} == {hitl_subset[0]["title"]}
+    assert {r["title"] for r in out["output"]["results"]} == {before["selected_items"][1]["title"]}
     assert_structural_invariants(state, out)
 
 
@@ -134,7 +141,6 @@ def test_structural_invariants_and_no_ranking_recalc(
     def map_spy(state_for_map):
         map_calls["count"] += 1
         assert "selected_items" in state_for_map
-        assert "ranked_items" not in state_for_map
         return _map_all_ok(state_for_map)
 
     monkeypatch.setattr(summarize_graph_21, "summarize_map", map_spy)

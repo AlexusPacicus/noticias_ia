@@ -186,7 +186,6 @@ def assert_global_invariants():
         "selected_items",
         "hitl_action",
         "hitl_remove_keys",
-        "hitl_selected_items",
         "summary_items",
         "summary_stats",
         "output",
