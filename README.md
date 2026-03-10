@@ -124,7 +124,7 @@ python run_pipeline_v2_1.py \
 
 ## Estructura del repositorio
 
-Carpetas que deben entrar al subir el proyecto:
+
 
 - `graph/` — runtimes `v2` y `v2.1`
 - `nodes/` — implementación de nodos compartidos
@@ -138,29 +138,6 @@ Carpetas que deben entrar al subir el proyecto:
 - `LICENSE`
 - `README.md`
 
-Carpetas o archivos que no deben entrar en una subida limpia:
-
-- `.venv/`
-- `.pytest_cache/`
-- `__pycache__/`
-- `artifacts/` si contiene resultados locales temporales
-- cualquier output generado manualmente durante pruebas locales
-
-## Estructura mínima recomendada para publicar
-
-```text
-docs/
-graph/
-nodes/
-runtime/
-tests/
-run_pipeline_v2.py
-run_pipeline_v2_1.py
-requirements.txt
-pytest.ini
-README.md
-LICENSE
-```
 
 ---
 
