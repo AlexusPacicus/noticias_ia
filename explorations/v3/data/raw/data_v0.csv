@@ -1,0 +1,13 @@
+paper_id,title,year,source_url,abstract,method_family_seed,method_family_lexical,method_family_llm,method_family_final,confidence,notes
+t2i_001,Generative Adversarial Text to Image Synthesis,2016,https://arxiv.org/abs/1605.05396,,gan,,,,,"Anchor paper; modern start of text-to-image generation."
+t2i_002,StackGAN: Text to Photo-realistic Image Synthesis with Stacked Generative Adversarial Networks,2017,https://arxiv.org/abs/1612.03242,,gan,,,,,"Anchor paper; multi-stage GAN refinement."
+t2i_003,AttnGAN: Fine-Grained Text to Image Generation with Attentional Generative Adversarial Networks,2018,https://arxiv.org/abs/1711.10485,,gan,,,,,"Anchor paper; attention over text regions."
+t2i_004,Zero-Shot Text-to-Image Generation,2021,https://arxiv.org/abs/2102.12092,,autoregressive,,,,,"DALL·E paper; autoregressive shift."
+t2i_005,GLIDE: Towards Photorealistic Image Generation and Editing with Text-Guided Diffusion Models,2021,https://arxiv.org/abs/2112.10741,,diffusion,,,,,"Early diffusion anchor."
+t2i_006,High-Resolution Image Synthesis with Latent Diffusion Models,2021,https://arxiv.org/abs/2112.10752,,diffusion,,,,,"Latent diffusion / Stable Diffusion base."
+t2i_007,Photorealistic Text-to-Image Diffusion Models with Deep Language Understanding,2022,https://arxiv.org/abs/2205.11487,,diffusion,,,,,"Imagen paper."
+t2i_008,Hierarchical Text-Conditional Image Generation with CLIP Latents,2022,https://arxiv.org/abs/2204.06125,,diffusion,,,,,"DALL·E 2 paper."
+t2i_009,Scalable Diffusion Models with Transformers,2023,https://arxiv.org/abs/2212.09748,,diffusion_transformer_or_hybrid,,,,,"DiT anchor."
+t2i_010,SDXL: Improving Latent Diffusion Models for High-Resolution Image Synthesis,2023,https://arxiv.org/abs/2307.01952,,diffusion,,,,,"SDXL anchor."
+t2i_011,Stable Diffusion 3: Research Paper,2024,https://stability.ai/news/stable-diffusion-3-research-paper,,diffusion_transformer_or_hybrid,,,,,"SD3 anchor; MMDiT + flow matching."
+t2i_012,Announcing Black Forest Labs,2024,https://blackforestlabs.ai/announcing-black-forest-labs/,,diffusion_transformer_or_hybrid,,,,,"FLUX.1 launch anchor."

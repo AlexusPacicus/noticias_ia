@@ -1,0 +1,9 @@
+year,method_family_lexical,count
+2016,gan,1
+2017,gan,1
+2018,gan,1
+2021,autoregressive,1
+2021,diffusion,2
+2022,diffusion,1
+2022,other,1
+2023,diffusion,2
